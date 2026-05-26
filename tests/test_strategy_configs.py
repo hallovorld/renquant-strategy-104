@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from renquant_strategy_104 import load_strategy_config, strategy_manifest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = ROOT / "configs"
@@ -43,3 +45,14 @@ def test_strategy_repo_has_no_generated_experiment_configs() -> None:
         if ".sim_" in p.name or ".codex_" in p.name or ".whatif_" in p.name
     )
     assert generated == []
+
+
+def test_strategy_package_loads_and_fingerprints_active_config() -> None:
+    cfg_path = CONFIG_DIR / "strategy_config.json"
+    cfg = load_strategy_config(cfg_path)
+    manifest = strategy_manifest(cfg_path)
+
+    assert cfg["watchlist"]
+    assert manifest["strategy"] == "renquant_104"
+    assert manifest["fingerprint"].startswith("sha256:")
+    assert manifest["watchlist_size"] == len(cfg["watchlist"])

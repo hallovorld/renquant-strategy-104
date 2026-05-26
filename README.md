@@ -2,6 +2,17 @@
 
 Policy/config repository for the active RenQuant 104 strategy.
 
+Operating model: https://github.com/hallovorld/RenQuant/blob/main/doc/arch/subrepo-operating-model.md
+
+Repository map: [RENQUANT_REPOS.md](RENQUANT_REPOS.md)
+
+Local automation:
+
+```bash
+make test
+make doctor
+```
+
 This repo owns strategy policy, not implementation:
 
 - active/golden/shadow strategy configs

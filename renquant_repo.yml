@@ -1,0 +1,31 @@
+schema_version: 1
+name: renquant-strategy-104
+role: active renquant_104 strategy policy and configuration
+operating_model: https://github.com/hallovorld/RenQuant/blob/main/doc/arch/subrepo-operating-model.md
+repo_map: RENQUANT_REPOS.md
+pipeline_required: true
+branch_policy:
+  main: stable interface for downstream repos and automation
+  feature_branches: experiments, optimizations, and large upgrades
+source_repo:
+  name: RenQuant
+  never_delete: true
+dependencies:
+  - renquant-common
+owns:
+  - strategy_config.json
+  - golden and shadow strategy config variants
+  - watchlist and universe policy
+  - sector map and gate thresholds
+  - accepted artifact pins
+forbidden:
+  - model training implementation
+  - runtime decision-tree implementation
+  - broker execution
+  - raw data
+  - model checkpoints
+automation:
+  test: make test
+  doctor: make doctor
+outputs:
+  - versioned strategy config bundle
