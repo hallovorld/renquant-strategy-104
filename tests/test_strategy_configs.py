@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from renquant_strategy_104 import load_strategy_config, strategy_manifest
 
 
@@ -32,11 +34,46 @@ def test_active_and_golden_watchlist_match() -> None:
     assert active["watchlist"] == golden["watchlist"]
 
 
+def test_active_and_golden_semantic_config_match() -> None:
+    active = _load("strategy_config.json")
+    golden = _load("strategy_config.golden.json")
+
+    assert _strip_provenance(active) == _strip_provenance(golden)
+
+
 def test_sector_map_covers_active_watchlist() -> None:
     cfg = _load("strategy_config.json")
     sector_map = cfg.get("sector_map", {})
     missing = sorted(t for t in cfg["watchlist"] if t not in sector_map)
     assert missing == []
+
+
+def test_watchlist_is_unique_and_contains_benchmark() -> None:
+    cfg = _load("strategy_config.json")
+
+    assert len(cfg["watchlist"]) == len(set(cfg["watchlist"]))
+    assert cfg["benchmark"] in cfg["watchlist"]
+
+
+def test_bull_calm_new_buys_and_panel_scorer_contract_are_explicit() -> None:
+    cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    panel = cfg["ranking"]["panel_scoring"]
+    global_cal = panel["global_calibration"]
+
+    assert cfg["regime_params"]["BULL_CALM"]["disable_new_buys"] is False
+    assert panel["enabled"] is True
+    assert panel["kind"] == "xgb"
+    assert panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
+    assert global_cal["enabled"] is True
+    assert global_cal["artifact_path"] == "artifacts/prod/panel-rank-calibration.json"
+
+
+def test_execution_contract_is_explicit() -> None:
+    cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+
+    assert cfg["execution"]["enabled"] is True
+    assert cfg["execution"]["t2_settlement_days"] == 1
+    assert cfg["execution"]["buying_power_mode"] == "non_marginable_buying_power"
 
 
 def test_strategy_repo_has_no_generated_experiment_configs() -> None:
@@ -56,3 +93,36 @@ def test_strategy_package_loads_and_fingerprints_active_config() -> None:
     assert manifest["strategy"] == "renquant_104"
     assert manifest["fingerprint"].startswith("sha256:")
     assert manifest["watchlist_size"] == len(cfg["watchlist"])
+
+
+def test_loader_rejects_duplicate_watchlist_and_missing_sector(tmp_path: Path) -> None:
+    cfg = _load("strategy_config.json")
+    cfg["watchlist"] = ["AAPL", "AAPL", "MSFT"]
+    cfg["sector_map"] = {"AAPL": "Technology"}
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps(cfg), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate tickers"):
+        load_strategy_config(path)
+
+
+def test_loader_rejects_local_absolute_artifact_path(tmp_path: Path) -> None:
+    cfg = _load("strategy_config.json")
+    cfg["ranking"]["panel_scoring"]["artifact_path"] = "/Users/renhao/model.json"
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps(cfg), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="repo-relative"):
+        load_strategy_config(path)
+
+
+def _strip_provenance(value):
+    if isinstance(value, dict):
+        return {
+            k: _strip_provenance(v)
+            for k, v in value.items()
+            if not str(k).startswith("_")
+        }
+    if isinstance(value, list):
+        return [_strip_provenance(v) for v in value]
+    return value
