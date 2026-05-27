@@ -4,15 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "renquant-strategy-104"
-version = "0.1.0"
+version = "0.2.0"
 description = "Policy/config repository for RenQuant 104."
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+  "renquant-common>=0.2,<0.3",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "../renquant-common/src"]
 testpaths = ["tests"]

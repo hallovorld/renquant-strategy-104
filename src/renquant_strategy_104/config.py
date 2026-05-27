@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from renquant_common import RegimeLabel, validate_regime_params
+
 
 def load_strategy_config(path: str | Path) -> dict[str, Any]:
     """Load and validate a strategy config JSON file."""
@@ -37,9 +39,19 @@ def _validate_strategy_config(data: dict[str, Any]) -> None:
     if missing_sector:
         raise ValueError(f"strategy sector_map missing watchlist tickers: {missing_sector}")
 
-    bull_calm = data["regime_params"].get("BULL_CALM", {})
+    # Closed-set check: every macro RegimeLabel must have a params block.
+    # `strict=False` because the legacy strategy_config.json mixes 5 macro
+    # regimes + 9 sentiment regimes (HIGH_*/MED_*/LOW_*) under the same key.
+    # TODO: split sentiment keys into their own `sentiment_params` block,
+    # then flip to strict=True (RFC Open Question #4-adjacent).
+    validate_regime_params(data, strict=False)
+
+    bull_calm = data["regime_params"].get(RegimeLabel.BULL_CALM.value, {})
     if bull_calm.get("disable_new_buys") is not False:
-        raise ValueError("BULL_CALM must explicitly keep disable_new_buys=false")
+        raise ValueError(
+            f"{RegimeLabel.BULL_CALM.value} must explicitly keep "
+            f"disable_new_buys=false"
+        )
 
     panel = data.get("ranking", {}).get("panel_scoring", {})
     if panel.get("enabled", False):
