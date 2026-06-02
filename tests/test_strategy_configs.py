@@ -10,6 +10,7 @@ from renquant_strategy_104 import load_strategy_config, strategy_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = ROOT / "configs"
+LATEST_PRODUCTION_SYNC_SOURCE = "732704bdb00c5bda6a9f6a4ee4c33523c0824286"
 
 
 def _load(name: str) -> dict:
@@ -38,7 +39,21 @@ def test_active_and_golden_semantic_config_match() -> None:
     active = _load("strategy_config.json")
     golden = _load("strategy_config.golden.json")
 
-    assert _strip_provenance(active) == _strip_provenance(golden)
+    active_norm = _strip_provenance(active)
+    golden_norm = _strip_provenance(golden)
+    # Production active currently carries the selected WF manifest; golden
+    # remains the policy baseline. Keep that explicit rather than blocking the
+    # production sync.
+    active_wf = active_norm.pop("walkforward", None)
+    golden_wf = golden_norm.pop("walkforward", None)
+    assert active_wf == {
+        "manifest_path": (
+            "/Users/renhao/git/github/RenQuant/backtesting/renquant_104/"
+            "artifacts/sim/walkforward_manifest_dropsenti_v3.json"
+        )
+    }
+    assert golden_wf is None
+    assert active_norm == golden_norm
 
 
 def test_sector_map_covers_active_watchlist() -> None:
@@ -93,6 +108,11 @@ def test_strategy_package_loads_and_fingerprints_active_config() -> None:
     assert manifest["strategy"] == "renquant_104"
     assert manifest["fingerprint"].startswith("sha256:")
     assert manifest["watchlist_size"] == len(cfg["watchlist"])
+
+
+def test_readme_records_latest_production_sync_source() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert LATEST_PRODUCTION_SYNC_SOURCE in readme
 
 
 def test_loader_rejects_duplicate_watchlist_and_missing_sector(tmp_path: Path) -> None:

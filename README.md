@@ -30,8 +30,16 @@ implementation, raw data, or model checkpoints.
 - `configs/strategy_config.golden.json`
 - `configs/strategy_config.shadow.json`
 
+This repo is the canonical home for RenQuant 104 strategy policy. The umbrella
+RenQuant repo may retain rollback copies under `backtesting/renquant_104/`, but
+runtime readers must not switch to this repo until those copies are synced and
+the umbrella pin is advanced to the synced commit.
+
 Initial split source: `hallovorld/RenQuant` commit
 `8f3e08d8d1ae1e402a78f4815efb59e3c7c66aa8`.
+
+Latest production sync source: `hallovorld/RenQuant` commit
+`732704bdb00c5bda6a9f6a4ee4c33523c0824286`.
 
 ## Local Test
 
