@@ -27,6 +27,9 @@ RenQuant 104. It is a config repo, not an implementation repo.
 ## Workflow
 
 - Config updates must keep active/golden/shadow intent explicit.
+- Treat `configs/strategy_config*.json` as canonical. If RenQuant umbrella
+  rollback copies are still present, keep them JSON-equivalent before routing
+  live jobs to this repo or advancing the umbrella pin.
 - Runtime code that consumes this repo must fail closed on missing or malformed
   config.
 - Run before commit:
