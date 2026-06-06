@@ -98,6 +98,19 @@ def test_execution_contract_is_explicit() -> None:
     assert cfg["execution"]["buying_power_mode"] == "non_marginable_buying_power"
 
 
+def test_qp_cap_compliance_sells_are_enabled_without_relaxing_c2() -> None:
+    for name in (
+        "strategy_config.json",
+        "strategy_config.golden.json",
+        "strategy_config.shadow.json",
+    ):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        qp = cfg["rotation"]["joint_actions"]
+        assert qp["qp_c2_infeasible_policy"] == "strict"
+        assert qp["allow_cap_compliance_sells_on_infeasible"] is True
+        assert "never admits new buys" in qp["_allow_cap_compliance_sells_on_infeasible_reason"]
+
+
 def test_strategy_repo_has_no_generated_experiment_configs() -> None:
     generated = sorted(
         p.name for p in CONFIG_DIR.glob("strategy_config.*.json")
