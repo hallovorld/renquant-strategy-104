@@ -72,15 +72,22 @@ def test_watchlist_is_unique_and_contains_benchmark() -> None:
 
 def test_bull_calm_new_buys_and_panel_scorer_contract_are_explicit() -> None:
     cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
     panel = cfg["ranking"]["panel_scoring"]
     global_cal = panel["global_calibration"]
 
     assert cfg["regime_params"]["BULL_CALM"]["disable_new_buys"] is False
     assert panel["enabled"] is True
-    assert panel["kind"] == "xgb"
-    assert panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
+    assert panel["kind"] == "hf_patchtst"
+    assert "patchtst_shadow" in panel["artifact_path"]
     assert global_cal["enabled"] is True
-    assert global_cal["artifact_path"] == "artifacts/prod/panel-rank-calibration.json"
+    assert global_cal["strict_scorer_match"] is True
+    assert "panel-rank-calibration.hf_patchtst" in global_cal["artifact_path"]
+    assert panel["regime_admission"]["enabled"] is False
+    assert shadow["ranking"]["panel_scoring"]["kind"] == "xgb"
+    assert shadow["ranking"]["panel_scoring"]["artifact_path"] == (
+        "artifacts/prod/panel-ltr.alpha158_fund.json"
+    )
 
 
 def test_execution_contract_is_explicit() -> None:
