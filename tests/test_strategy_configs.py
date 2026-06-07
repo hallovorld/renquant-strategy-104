@@ -111,6 +111,21 @@ def test_qp_cap_compliance_sells_are_enabled_without_relaxing_c2() -> None:
         assert "never admits new buys" in qp["_allow_cap_compliance_sells_on_infeasible_reason"]
 
 
+def test_bear_defensive_sleeve_is_explicit_and_default_off() -> None:
+    for name in (
+        "strategy_config.json",
+        "strategy_config.golden.json",
+        "strategy_config.shadow.json",
+    ):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        sleeve = cfg["bear_defensive_sleeve"]
+        assert sleeve["enabled"] is False
+        assert "A/B validation" in sleeve["_reason"]
+        assert cfg["bear_defensive_slots"] > 0
+        assert cfg["bear_defensive_pct"] > 0
+        assert cfg["defensive_tickers"]
+
+
 def test_strategy_repo_has_no_generated_experiment_configs() -> None:
     generated = sorted(
         p.name for p in CONFIG_DIR.glob("strategy_config.*.json")
