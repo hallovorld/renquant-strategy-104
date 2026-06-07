@@ -90,6 +90,56 @@ def test_bull_calm_new_buys_and_panel_scorer_contract_are_explicit() -> None:
     )
 
 
+def test_patchtst_operator_promotion_contract_is_auditable() -> None:
+    cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
+    shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
+    panel = cfg["ranking"]["panel_scoring"]
+    golden_panel = golden["ranking"]["panel_scoring"]
+    shadow_panel = shadow["ranking"]["panel_scoring"]
+
+    promotion_note = panel.get("_2026_06_05_patchtst_promotion", "")
+    promotion_reason = panel.get("regime_admission", {}).get(
+        "_promotion_reason_2026_06_05", ""
+    )
+    assert "operator-directed prod/shadow switch" in promotion_note
+    assert "HF PatchTST" in promotion_note
+    assert "XGB moved to readonly shadow" in promotion_note
+    assert "does not yet carry strict WF regime-admission metadata" in promotion_reason
+
+    assert panel["kind"] == golden_panel["kind"] == "hf_patchtst"
+    assert panel["artifact_path"] == golden_panel["artifact_path"]
+    assert "patchtst_shadow" in panel["artifact_path"], (
+        "If the primary PatchTST artifact is renamed into a prod registry, "
+        "update this assertion and the 2026-06-07 status audit together."
+    )
+    assert panel["global_calibration"] == golden_panel["global_calibration"]
+    assert panel["global_calibration"]["strict_scorer_match"] is True
+    assert "artifacts/shadow/" in panel["global_calibration"]["artifact_path"]
+    assert panel["regime_admission"]["enabled"] is False
+
+    shadow_models = panel.get("shadow_models") or []
+    assert shadow_models == [
+        {
+            "name": "xgb_alpha158_fund_previous_primary",
+            "kind": "xgb",
+            "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
+            "_2026_06_05_role": (
+                "Previous primary scorer moved to strategy_config.shadow.json "
+                "after PatchTST promotion."
+            ),
+        }
+    ]
+    assert panel["shadow_experiment"] == (
+        "renquant_104_xgb_shadow_after_patchtst_promotion"
+    )
+    assert shadow_panel["kind"] == "xgb"
+    assert shadow_panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
+    assert "production primary is HF PatchTST" in shadow["ranking"].get(
+        "_2026_06_05_shadow_switch", ""
+    )
+
+
 def test_execution_contract_is_explicit() -> None:
     cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
 
