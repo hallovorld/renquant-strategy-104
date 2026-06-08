@@ -29,6 +29,13 @@ implementation, raw data, or model checkpoints.
 - `configs/strategy_config.json`
 - `configs/strategy_config.golden.json`
 - `configs/strategy_config.shadow.json`
+- `configs/patchtst_prod_artifact_manifest.json`
+
+`patchtst_prod_artifact_manifest.json` records the 2026-06-05 operator-directed
+PatchTST production promotion boundary. It is intentionally separate from the
+runtime config: the runtime still reads `strategy_config.json`, while the
+manifest makes the shadow-named production checkpoint and calibrator auditable
+until they are moved or aliased into prod-named artifact registry entries.
 
 This repo is the canonical home for RenQuant 104 strategy policy. The umbrella
 RenQuant repo may retain rollback copies under `backtesting/renquant_104/`, but

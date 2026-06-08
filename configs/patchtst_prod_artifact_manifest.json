@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "strategy": "renquant_104",
+  "manifest_role": "production_primary_scorer_audit",
+  "effective_date": "2026-06-05",
+  "promotion_boundary": {
+    "decision": "operator_directed_prod_shadow_switch",
+    "primary_model_family": "hf_patchtst",
+    "previous_primary_model_family": "xgb",
+    "acceptance_status": "operator_override_with_residual_controls",
+    "reason": "HF PatchTST pt07 strict seed44 promoted to primary scorer; XGB moved to readonly shadow config."
+  },
+  "production_primary": {
+    "name": "hf_patchtst_pt07_strict_seed44",
+    "kind": "hf_patchtst",
+    "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
+    "artifact_path_role": "production_primary",
+    "artifact_path_naming_caveat": "This production primary path still contains patchtst_shadow because the checkpoint was promoted by operator override before a prod-named artifact registry entry existed.",
+    "global_calibration": {
+      "enabled": true,
+      "strict_scorer_match": true,
+      "artifact_path": "artifacts/shadow/panel-rank-calibration.hf_patchtst_seed44_trainfit_20230103_20240409.json",
+      "artifact_path_role": "production_primary_calibrator",
+      "artifact_path_naming_caveat": "Path still contains artifacts/shadow; strict_scorer_match remains enabled and this manifest records the production role."
+    },
+    "regime_admission": {
+      "enabled": false,
+      "residual_risk": "Current HF checkpoint does not yet carry strict walk-forward regime-admission metadata."
+    }
+  },
+  "readonly_shadow": {
+    "name": "xgb_alpha158_fund_previous_primary",
+    "kind": "xgb",
+    "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
+    "config_path": "configs/strategy_config.shadow.json",
+    "experiment": "renquant_104_xgb_shadow_after_patchtst_promotion"
+  },
+  "residual_controls": [
+    "preflight/model contract",
+    "calibrator strict_scorer_match",
+    "QP",
+    "freshness",
+    "drawdown",
+    "sell-only risk gates"
+  ],
+  "follow_up_exit_criteria": [
+    "Promote or alias the PatchTST checkpoint into a prod-named artifact registry entry.",
+    "Promote or alias the PatchTST calibrator into a prod-named artifact registry entry.",
+    "Train the next PatchTST candidate on split-pure sequence windows and attach strict regime-admission metadata."
+  ]
+}
