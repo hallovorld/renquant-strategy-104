@@ -218,7 +218,7 @@ def test_qp_cap_compliance_sells_are_enabled_without_relaxing_c2() -> None:
         assert "never admits new buys" in qp["_allow_cap_compliance_sells_on_infeasible_reason"]
 
 
-def test_qp_live_shadow_telemetry_is_staged_default_off() -> None:
+def test_qp_live_shadow_telemetry_is_enabled_readonly() -> None:
     for name in (
         "strategy_config.json",
         "strategy_config.golden.json",
@@ -226,7 +226,7 @@ def test_qp_live_shadow_telemetry_is_staged_default_off() -> None:
     ):
         cfg = load_strategy_config(CONFIG_DIR / name)
         telemetry = cfg["rotation"]["joint_actions"]["qp_live_shadow_telemetry"]
-        assert telemetry["enabled"] is False
+        assert telemetry["enabled"] is True
         assert telemetry["candidate_name"] == "hybrid_option_f_allocator"
         assert telemetry["incumbent_name"] == "current_qp"
         assert telemetry["path"] == "artifacts/live-shadow/qp-live-shadow.jsonl"
