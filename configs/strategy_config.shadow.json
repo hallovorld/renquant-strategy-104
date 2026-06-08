@@ -683,7 +683,14 @@
       "qp_mu_contract": "strict",
       "_qp_mu_contract_reason": "2026-05-21 Codex audit: QP objective expects μ in expected-return / volatility units. Strictly reject raw rank_score/panel_score fallback; valid sources are calibrator expected_return, NGBoost μ, or alpha_to_mu.",
       "qp_band_method": "davis_norman",
-      "_qp_band_method_note_2026-05-30": "Operator opt-in to Davis-Norman closed-form no-trade band (research C). Defaults: dn_floor=0.005, dn_ceiling=qp_no_trade_band_cap (0.05), dn_eps_oneway=qp_cost_kappa/2 (0.001), dn_gamma=qp_risk_aversion (3.0). Replaces 5% ad-hoc band_cap (binding on most names) with literature 1/3-power band ~0.5-2% at typical σ. Per Davis-Norman 1990 / Janeček-Shreve 2004."
+      "_qp_band_method_note_2026-05-30": "Operator opt-in to Davis-Norman closed-form no-trade band (research C). Defaults: dn_floor=0.005, dn_ceiling=qp_no_trade_band_cap (0.05), dn_eps_oneway=qp_cost_kappa/2 (0.001), dn_gamma=qp_risk_aversion (3.0). Replaces 5% ad-hoc band_cap (binding on most names) with literature 1/3-power band ~0.5-2% at typical σ. Per Davis-Norman 1990 / Janeček-Shreve 2004.",
+      "qp_live_shadow_telemetry": {
+        "enabled": false,
+        "candidate_name": "hybrid_option_f_allocator",
+        "incumbent_name": "current_qp",
+        "path": "artifacts/live-shadow/qp-live-shadow.jsonl",
+        "_reason": "2026-06-08 Codex QP Step5 staging: default-off until renquant-pipeline live-shadow wiring lands. Candidate matches fwd_1d current-QP replay evidence; enabling writes readonly JSONL telemetry only and must not change orders."
+      }
     },
     "enabled_regimes": [
       "BULL_CALM"
