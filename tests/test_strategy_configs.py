@@ -22,11 +22,13 @@ def test_required_policy_configs_exist_and_parse() -> None:
         "strategy_config.json",
         "strategy_config.golden.json",
         "strategy_config.shadow.json",
+        "patchtst_prod_artifact_manifest.json",
     ):
         data = _load(name)
         assert isinstance(data, dict)
-        assert data.get("watchlist"), f"{name} missing watchlist"
-        assert data.get("regime_params"), f"{name} missing regime_params"
+        if name.startswith("strategy_config"):
+            assert data.get("watchlist"), f"{name} missing watchlist"
+            assert data.get("regime_params"), f"{name} missing regime_params"
 
 
 def test_active_and_golden_watchlist_match() -> None:
@@ -137,6 +139,61 @@ def test_patchtst_operator_promotion_contract_is_auditable() -> None:
     assert shadow_panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
     assert "production primary is HF PatchTST" in shadow["ranking"].get(
         "_2026_06_05_shadow_switch", ""
+    )
+
+
+def test_patchtst_prod_artifact_manifest_matches_runtime_configs() -> None:
+    cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
+    shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
+    manifest = _load("patchtst_prod_artifact_manifest.json")
+    panel = cfg["ranking"]["panel_scoring"]
+    golden_panel = golden["ranking"]["panel_scoring"]
+    shadow_panel = shadow["ranking"]["panel_scoring"]
+    primary = manifest["production_primary"]
+    primary_cal = primary["global_calibration"]
+    shadow_manifest = manifest["readonly_shadow"]
+
+    assert manifest["schema_version"] == 1
+    assert manifest["strategy"] == "renquant_104"
+    assert manifest["manifest_role"] == "production_primary_scorer_audit"
+    assert manifest["promotion_boundary"]["decision"] == (
+        "operator_directed_prod_shadow_switch"
+    )
+    assert manifest["promotion_boundary"]["acceptance_status"] == (
+        "operator_override_with_residual_controls"
+    )
+
+    assert primary["kind"] == panel["kind"] == golden_panel["kind"] == "hf_patchtst"
+    assert primary["artifact_path"] == panel["artifact_path"]
+    assert primary["artifact_path"] == golden_panel["artifact_path"]
+    assert primary["artifact_path_role"] == "production_primary"
+    assert "patchtst_shadow" in primary["artifact_path"]
+    assert "production primary" in primary["artifact_path_naming_caveat"]
+
+    runtime_cal = panel["global_calibration"]
+    assert primary_cal["enabled"] == runtime_cal["enabled"] is True
+    assert primary_cal["strict_scorer_match"] == runtime_cal["strict_scorer_match"]
+    assert primary_cal["artifact_path"] == runtime_cal["artifact_path"]
+    assert primary_cal["artifact_path"] == golden_panel["global_calibration"]["artifact_path"]
+    assert primary_cal["artifact_path_role"] == "production_primary_calibrator"
+    assert "artifacts/shadow/" in primary_cal["artifact_path"]
+
+    assert primary["regime_admission"]["enabled"] == (
+        panel["regime_admission"]["enabled"]
+    ) is False
+    assert "regime-admission metadata" in primary["regime_admission"]["residual_risk"]
+
+    assert shadow_manifest["name"] == "xgb_alpha158_fund_previous_primary"
+    assert shadow_manifest["kind"] == shadow_panel["kind"] == "xgb"
+    assert shadow_manifest["artifact_path"] == shadow_panel["artifact_path"]
+    assert shadow_manifest["config_path"] == "configs/strategy_config.shadow.json"
+    assert shadow_manifest["experiment"] == panel["shadow_experiment"]
+
+    assert "calibrator strict_scorer_match" in manifest["residual_controls"]
+    assert any(
+        "prod-named artifact registry" in item
+        for item in manifest["follow_up_exit_criteria"]
     )
 
 
