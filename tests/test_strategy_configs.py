@@ -233,6 +233,17 @@ def test_qp_live_shadow_telemetry_is_enabled_readonly() -> None:
         assert "readonly JSONL telemetry only" in telemetry["_reason"]
 
 
+def test_kelly_sigma_horizon_is_shadow_only_experiment() -> None:
+    prod = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
+    shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
+
+    assert prod["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 252
+    assert golden["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 252
+    assert shadow["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 60
+    assert "do not promote" in shadow["ranking"]["kelly_sizing"]["_sigma_horizon_days_reason"]
+
+
 def test_bear_defensive_sleeve_is_explicit_and_default_off() -> None:
     for name in (
         "strategy_config.json",
