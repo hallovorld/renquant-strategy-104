@@ -834,6 +834,8 @@
   "blend_n_symbols": 103,
   "panel_scoring": {
    "enabled": true,
+   "signal_gate_prefer_calibrated_mu": true,
+   "_signal_gate_prefer_calibrated_mu_reason": "2026-06-10 root-cause fix for structural sell-only. PatchTST is a cross-sectional ranker whose raw panel_score is intrinsically all-negative (output head centres near raw=-0.20; signal is in the relative ordering, OOS IC~0.13). The calibrator's ER=0 neutral sits at raw=-0.198, so calibrated mu>0 means 'ranked above the model neutral' = genuinely bullish. The legacy raw>0 direction gate assumes 0=neutral and blocks 100% of names (verified 0/142 admitted asof 2026-06-10), so the book can never open a long. With this flag the direction test becomes calibrated mu>0 alone (mu>0 <=> raw>neutral_raw), admitting the top-ranked names (80/142; e.g. DDOG/SMCI/FTNT/QCOM/CRWD mu +5-6pct, P 0.62-0.65). Requires pipeline signal_gate_prefer_calibrated_mu support (PR #98).",
    "bypass_ticker_gate": true,
    "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
    "nan_prone_cols": [],
