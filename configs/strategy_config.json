@@ -436,6 +436,12 @@
     "_reason": "2026-05-21 P0-4: model-driven soft exits on short-term unrealized gains must have enough negative expected return to pay immediate tax drag. Uses the same fraction-of-position tax_drag convention as kernel.rotation.tax_drag. Path-risk exits remain exempt."
    },
    "_deployment_reason": "2026-05-11 audit fix: legacy PanelConvictionExitTask had 0/12336 historical fire rate due to calibrator-saturation rank_score gating. NEW CrossSectionalPanelExitTask post-PanelScoringJob uses raw panel_score with cross-sectional percentile (AND mu) + strong-mu OR-bypass. Catches BA-style cases: panel=+0.198 (32%ile) mu=-0.123 \u2192 fires via strong_mu bypass."
+  },
+  "model_protection": {
+   "enabled": true,
+   "exit_mu_threshold": 0.0,
+   "n_strikes": 3,
+   "_reason": "2026-06-11 operator go-ahead: enable thesis-aware model protection. Each daily sell pass re-scores the holding's calibrated mu; sells only after N=3 CONSECUTIVE daily evaluations with mu<=exit_mu_threshold (de Prado meta-label + CUSUM/SPRT debounce, Page 1954 / Wald 1945). A single noisy bearish reading does not exit; a recovering reading resets the strike count. Validated on real 5-day mu trajectories (diag_protection_trajectory). Requires pipeline ModelProtectionExitTask (#111) AND the umbrella live_state protection_breaches round-trip for the cross-DAY debounce; absent that round-trip the counter resets each run and the task stays inert (cannot misfire)."
   }
  },
  "sector_map": {
