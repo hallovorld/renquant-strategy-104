@@ -853,11 +853,11 @@
    "bypass_ticker_gate": true,
    "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
    "nan_prone_cols": [],
-   "buy_floor": "adaptive_mean_std",
+   "buy_floor": "adaptive_quantile",
    "buy_floor_adaptive_cap": 0.3,
    "buy_floor_min": 0.2,
    "buy_floor_std_mult": 1,
-   "_buy_floor_reason": "2026-05-21 Codex audit: use uncapped cross-sectional mean+1*std on calibrated rank_score. The prior adaptive_mean_std_cap mode capped the floor at 0.30; once calibrated scores clustered around 0.55-0.65, the floor became a no-op and admitted nearly every candidate. This follows cross-sectional normalization/ranking practice (Qlib CSRankNorm/CSZFillna) while preserving the no-signal behavior when mean+std exceeds all compressed scores. adaptive_mean_std_cap remains for old experiments only.",
+   "_buy_floor_reason": "2026-06-11 false-BEAR audit P2 (operator-approved audit; pipeline #113): adaptive_mean_std (max(0.20, mean+1*std), uncapped) is shape-unstable on the Platt-compressed PatchTST calibrator (rank_score IQR=0.039 on 2026-06-11; dropped 71/83=86%) and structurally caps breadth at ~16% regardless of edge (Grinold FLAM: IR=IC*sqrt(BR)). adaptive_quantile admits the top (1-q)=20% of the cross-section by calibrated rank \u2014 breadth becomes a deliberate parameter, stable under score compression. buy_floor_min=0.20 remains the absolute fail-safe on degenerate cross-sections. Requires pipeline #113.",
    "rotation_advantage": 0,
    "sizing": {
     "enabled": false,
@@ -948,7 +948,8 @@
     "enabled": false,
     "_promotion_reason_2026_06_05": "Operator-directed PatchTST promotion from shadow to primary. Current HF checkpoint does not yet carry strict WF regime-admission metadata, so runtime regime admission remains disabled for this scorer; preflight/model contract, calibrator strict_scorer_match, QP, freshness, drawdown, and sell-only risk gates remain active."
    },
-   "_2026_06_05_patchtst_promotion": "2026-06-05 operator-directed prod/shadow switch: HF PatchTST pt07 strict seed44 promoted to primary scorer; XGB moved to readonly shadow config."
+   "_2026_06_05_patchtst_promotion": "2026-06-05 operator-directed prod/shadow switch: HF PatchTST pt07 strict seed44 promoted to primary scorer; XGB moved to readonly shadow config.",
+   "buy_floor_quantile": 0.8
   },
   "universe_floor": {
    "type": "sharpe",
