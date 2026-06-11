@@ -220,7 +220,7 @@
   "bear_trend_filter": {
    "enabled": true,
    "ma_window": 200,
-   "_reason": "2026-06-11 false-BEAR audit P0: the 5-day BEAR route was OR(vol,ret); a lone vol spike (5d_vol=0.26>0.25, ret=-2.57% > -4%) flipped the book to hard_bear in a market +7.6% above its 200-DMA, blocking all buys. require_both demands vol AND a real drop; bear_trend_filter suppresses the 5d route while price > 200d MA (Faber 2007). 20-day GFC routes (35% vol / -8% ret) stay UNCONDITIONAL. Validated on real SPY: 2026-06-11 hard_bear True->False, COVID 2020-03-20 stays True. Requires pipeline PR #112."
+   "_reason": "2026-06-11 false-BEAR audit P0: the 5-day BEAR route was OR(vol,ret); a lone vol spike (5d_vol=0.26>0.25, ret=-2.57% > -4%) flipped the book to hard_bear in a market +7.6% above its 200-DMA, blocking all buys. require_both makes the vol route demand vol AND a real drop; bear_trend_filter suppresses only the vol-only 5d route while price > 200d MA (Faber 2007). 20-day GFC routes (35% vol / -8% ret) and the acute 5-day return-loss route stay UNCONDITIONAL. Validated on real SPY: 2026-06-11 hard_bear True->False, COVID 2020-03-20 stays True. Requires pipeline PR #112."
   }
  },
  "regime_params": {
