@@ -233,15 +233,25 @@ def test_qp_live_shadow_telemetry_is_enabled_readonly() -> None:
         assert "readonly JSONL telemetry only" in telemetry["_reason"]
 
 
-def test_kelly_sigma_horizon_is_shadow_only_experiment() -> None:
+def test_kelly_sigma_horizon_matches_mu_horizon() -> None:
+    """2026-06-11 Kelly horizon-match fix: f*=mu/sigma^2 requires mu and sigma
+    on the SAME horizon. mu is the 60d calibrator expected return, so
+    sigma_horizon_days must be 60 (was 252/annualized, which inflated variance
+    ~4.2x and systematically crushed high-vol names). Prod + golden now carry
+    the matched 60d horizon; this replaces the prior 'shadow-only experiment'
+    guard that pinned prod to 252 for byte-equivalence."""
     prod = load_strategy_config(CONFIG_DIR / "strategy_config.json")
     golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
     shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
 
-    assert prod["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 252
-    assert golden["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 252
+    assert prod["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 60
+    assert golden["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 60
+    # half-Kelly retuned down to 0.3 so the (now correctly larger) targets keep
+    # total deployment sane rather than pinning every name at the 12% cap.
+    assert prod["ranking"]["kelly_sizing"]["fractional"] == 0.3
+    assert golden["ranking"]["kelly_sizing"]["fractional"] == 0.3
+    # shadow already ran the matched 60d horizon.
     assert shadow["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 60
-    assert "do not promote" in shadow["ranking"]["kelly_sizing"]["_sigma_horizon_days_reason"]
 
 
 def test_bear_defensive_sleeve_is_explicit_and_default_off() -> None:
