@@ -166,6 +166,8 @@
  "min_hold_profit_days": 20,
  "min_hold_loss_days": 20,
  "max_hold_days": 500,
+ "sdl_skip_if_trailing_armed": true,
+ "_sdl_skip_if_trailing_armed_reason": "2026-06-10 H-2 deep-audit: once a position's peak gain arms the regime trailing stop (peak_gain >= trailing_stop_trigger_pct), the single-day-loss gate defers to the trailing stop, which manages winner giveback. The loss-stop caps catastrophic gaps on losers/flats. Pre-fix SDL fired first (tighter threshold) and crystallized winners: NVTS exited via single_day_loss at +113%; single_day_loss exits averaged +9% pnl. Requires pipeline check_single_day_loss sdl_skip_if_trailing_armed support (PR #92).",
  "train_split": 0.7,
  "volume_zscore_lookback": 20,
  "volume_filter": {
@@ -397,6 +399,18 @@
     "BEAR"
    ],
    "_reason": "2026-05-24 Codex exit-path repair: BULL_CALM entries are selected on a 60d thesis. If the regime label later deteriorates, cumulative stop-loss may adapt only by taking max(entry_stop,current_stop), so the path-risk stop stays armed but is not silently tightened below the entry thesis budget."
+  },
+  "sdl_anchor_policy": {
+   "mode": "entry_regime",
+   "entry_regimes": [
+    "BULL_CALM"
+   ],
+   "current_regimes": [
+    "BULL_VOLATILE",
+    "CHOPPY",
+    "BEAR"
+   ],
+   "_reason": "2026-06-10 H-1 deep-audit: BULL_CALM entries use a sigma-adaptive single-day-loss gate (sdl_n_sigma=3, no absolute cap). A later regime relabel to BULL_VOLATILE/CHOPPY/BEAR imposed that regime's tight absolute 6% single-day stop, whipsawing a 60d thesis that never changed. Anchor the SDL config (max_single_day_loss_pct, sdl_n_sigma) to the entry thesis so a relabel cannot retighten it. Mirrors stop_loss_anchor_policy scoping. Requires pipeline apply_single_day_loss_anchor_policy (PR #94)."
   },
   "panel_exit": {
    "enabled": true,
@@ -685,9 +699,11 @@
     "topup_min_rank_score": 0.55,
     "topup_min_panel_score": null,
     "min_expected_return_by_regime": {
-     "BULL_CALM": 0.01
+     "BULL_CALM": 0.01,
+     "default": 0.005
     },
     "_min_expected_return_reason": "2026-05-24 Codex QP alpha contract: QP may size only candidates with finite calibrated expected-return evidence on the same 60d horizon as panel_ltr/QP \u03bc. Requiring 4% 60d expected excess return in BULL_CALM keeps thin probability-only signals from becoming trades after friction and benchmark-sleeve opportunity cost.",
+    "_default_min_expected_return_reason": "2026-06-10 BL-4 deep-audit: a by_regime map with no global silently disabled this floor in BULL_VOLATILE/CHOPPY/BEAR (those regimes were absent from the map, so _qp_admission_gate_value returned None and the gate went dark). The default restores a non-zero ER floor in every un-listed regime. 0.005 is a conservative starting point (half of BULL_CALM's 0.01); operator may prefer a stricter floor in BEAR/CHOPPY. Requires pipeline default-key support (PR #93).",
     "respect_open_slots": true,
     "_reason": "2026-05-23 Codex alpha-conversion fix: QP may size/rebalance only pre-qualified alpha. WF trace forensics showed negative raw-panel and low-rank QP/TopUp adds were net negative after tax/friction, and QP opened risk when the book was already at the legacy slot cap. Require calibrated rank >=0.55, raw panel >=0, and available slot for new names before emitting QP buys/top-ups.",
     "_min_panel_score_note": "2026-06-09: GBDT-scale floor 0 structurally excluded PatchTST (scores center -0.2); rank floor stays the quality gate.",
