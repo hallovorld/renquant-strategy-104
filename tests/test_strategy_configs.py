@@ -254,6 +254,22 @@ def test_kelly_sigma_horizon_matches_mu_horizon() -> None:
     assert shadow["ranking"]["kelly_sizing"]["sigma_horizon_days"] == 60
 
 
+def test_soft_exit_min_holding_days_cover_unlisted_regimes() -> None:
+    """The sell-side BL-4 follow-up: panel/QP soft-exit horizon guards must
+    keep a 60d default in regimes not explicitly listed."""
+    for name in ("strategy_config.json", "strategy_config.golden.json"):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        panel_days = cfg["risk"]["panel_exit"]["min_holding_days_by_regime"]
+        qp_days = cfg["rotation"]["joint_actions"]["qp_soft_sell_guard"][
+            "min_holding_days_by_regime"
+        ]
+
+        assert panel_days["BULL_CALM"] == 60
+        assert panel_days["default"] == 60
+        assert qp_days["BULL_CALM"] == 60
+        assert qp_days["default"] == 60
+
+
 def test_bear_defensive_sleeve_is_explicit_and_default_off() -> None:
     for name in (
         "strategy_config.json",

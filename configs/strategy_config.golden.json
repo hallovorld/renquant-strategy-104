@@ -422,7 +422,8 @@
    "mu_strong_sell_ceiling": -0.05,
    "min_universe": 5,
    "min_holding_days_by_regime": {
-    "BULL_CALM": 60
+    "BULL_CALM": 60,
+    "default": 60
    },
    "_min_holding_days_reason": "2026-05-24 Codex exit-path repair: BULL_CALM panel/QP thesis is trained and calibrated on a 60d forward excess-return horizon. Model-driven soft exits (model_sell and panel_conviction) must not cut that thesis before the same horizon even if the current regime label changes; hard path-risk exits remain unaffected.",
    "tax_adjusted_soft_exit": {
@@ -715,7 +716,8 @@
     "enabled": true,
     "apply_tax_gates": false,
     "min_holding_days_by_regime": {
-     "BULL_CALM": 60
+     "BULL_CALM": 60,
+     "default": 60
     },
     "_min_holding_days_reason": "2026-05-24 Codex exit-path audit: BULL_CALM QP soft sells had high false-positive continuation rates after exit while hard risk exits remain armed. QP trims are model-driven soft exits, so they should not cut a 60d panel thesis before its own horizon unless a path-risk rule fires.",
     "_apply_tax_gates_reason": "2026-05-23 Codex audit: QP soft sells still need the thesis-age horizon guard, but tax/LT suppression is disabled while qp_tax_aware=false so the order-emission stage cannot reintroduce hidden tax-driven hold logic."
