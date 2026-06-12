@@ -1271,5 +1271,12 @@
   "sanity_regime_ic_required": false,
   "_decision_note": "2026-05-30 operator decision: accept positive-Sharpe-but-SPY-laggard GBDT signal (mean Sharpe +0.646, 3/3 cuts > 0, 0/3 beat SPY). Daily orders unblock on absolute_ok alone. Revert by removing this wf_gate block (defaults are strict)."
  },
- "_tiered_thresholds_note_20260609": "tier-3 0.60 was GBDT-distribution-calibrated; pt07 top ranks 0.54-0.58. Proper fix = percentile admission (score_db Phase 2)."
+ "_tiered_thresholds_note_20260609": "tier-3 0.60 was GBDT-distribution-calibrated; pt07 top ranks 0.54-0.58. Proper fix = percentile admission (score_db Phase 2).",
+ "live": {
+  "broker_side_stops": {
+   "enabled": true,
+   "pct": 0.2,
+   "_reason": "2026-06-12 G1 dead-box catastrophe line (operator-approved Week-0 guard, eng plan): Z9 broker-resident GTC stops were implemented but never enabled - broker order book verified EMPTY, so every stop (SDL/trailing/protection) dies with the run machine. pct=0.20 is a FAR catastrophe distance: the in-process sigma-aware stops remain the primary exits; the broker GTC line only protects against a dead box. 6% intraday distance deliberately NOT used (whipsaws high-vol names). Requires umbrella PR #308 (_z9_stop_pct pct override)."
+  }
+ }
 }
