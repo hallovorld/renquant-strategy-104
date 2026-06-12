@@ -263,7 +263,7 @@
    "cash_reserve_pct": 0.3,
    "stop_loss_pct": 0.08,
    "max_single_day_loss_pct": 0.06,
-   "max_hold_days": 40,
+   "max_hold_days": 500,
    "drawdown_halt_pct": 0.08,
    "entry_mode": "divergence",
    "min_model_score": 0.15,
@@ -278,7 +278,8 @@
    },
    "sentiment": {
     "enabled": true
-   }
+   },
+   "_max_hold_days_reason": "2026-06-11 max_hold RFC (operator-approved, orchestrator #94): CHOPPY=40 was the lone per-current-regime tightening \u2014 shorter than the 60d thesis horizon, so it cut bets before evaluation (force-sold MU, a +momentum winner, at 45d after the regime fix flipped BEAR->CHOPPY; compounded by a missing entry-regime anchor falling back to the CURRENT regime). Tenure is not a regime property: unify at the far zombie-position backstop (500, matching all other regimes) so signal/risk exits (panel/rotation, model_protection, stops) own real exits per de Prado vertical-barrier reasoning. A uniform value also neutralizes the anchor-fallback hazard. Shadow uses the same exit backstop so readonly comparisons do not preserve the obsolete CHOPPY clock exit."
   },
   "BEAR": {
    "max_position_pct": 0,

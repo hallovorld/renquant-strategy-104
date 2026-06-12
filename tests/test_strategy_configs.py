@@ -270,6 +270,26 @@ def test_soft_exit_min_holding_days_cover_unlisted_regimes() -> None:
         assert qp_days["default"] == 60
 
 
+def test_core_regime_max_hold_is_far_backstop_in_all_runtime_configs() -> None:
+    """Max-hold is a zombie-position backstop, not a per-regime thesis clock."""
+    for name in (
+        "strategy_config.json",
+        "strategy_config.golden.json",
+        "strategy_config.shadow.json",
+    ):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        values = {
+            regime: cfg["regime_params"][regime]["max_hold_days"]
+            for regime in ("BULL_CALM", "BULL_VOLATILE", "CHOPPY", "BEAR")
+        }
+        assert values == {
+            "BULL_CALM": 500,
+            "BULL_VOLATILE": 500,
+            "CHOPPY": 500,
+            "BEAR": 500,
+        }
+
+
 def test_bear_defensive_sleeve_is_explicit_and_default_off() -> None:
     for name in (
         "strategy_config.json",
