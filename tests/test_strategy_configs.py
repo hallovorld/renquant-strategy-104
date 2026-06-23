@@ -198,6 +198,12 @@ def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
     assert any(
         "Strengthen the BULL_CALM" in c for c in manifest["follow_up_exit_criteria"]
     )
+    # Path B evidence: threshold sensitivity + honest caveat + concrete withdrawal trigger.
+    assert "mu_floor_evidence" in manifest
+    assert "coarse quality filter" in manifest["mu_floor_evidence"]["honest_caveat"].lower() \
+        or "COARSE QUALITY FILTER" in manifest["mu_floor_evidence"]["honest_caveat"]
+    assert manifest["mu_floor_evidence"]["threshold_sensitivity_top_of_cross_section"]["mu_by_name"]["CRWD"] == 0.053
+    assert any("regime_admission" in t for t in manifest["override_withdrawal_trigger"])
 
 
 def test_execution_contract_is_explicit() -> None:

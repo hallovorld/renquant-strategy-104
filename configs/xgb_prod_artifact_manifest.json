@@ -59,5 +59,31 @@
     "Strengthen the BULL_CALM cross-sectional signal so regime admission can be re-enabled and the override withdrawn.",
     "Re-gate XGB after the signal fix and promote only on an organic pass.",
     "Repair PatchTST to positive real IC or retire it from shadow."
+  ],
+  "mu_floor_evidence": {
+    "as_of": "2026-06-23",
+    "regime": "BULL_CALM (live)",
+    "threshold_sensitivity_top_of_cross_section": {
+      "note": "Calibrated E[R-SPY] (mu) of the top admitted names on the 2026-06-23 BULL_CALM cross-section. mu_floor selects the high-mu tail; the set thins steeply above 0.04 -> 0.03 is the knee that keeps a workable book.",
+      "mu_by_name": {
+        "CRWD": 0.053,
+        "CSCO": 0.042,
+        "AVGO": 0.039,
+        "AMZN": 0.037,
+        "ASML": 0.034
+      },
+      "buy_set_size_by_floor": {
+        "0.02": "most of the rank-floor survivors",
+        "0.03": "the mu>=3% tail (knee)",
+        "0.04": "~CRWD/CSCO/AVGO",
+        "0.05": "~CRWD only"
+      }
+    },
+    "cut_level": "ConvictionGateTask drops the low-mu tail (~15-20% of rank-floor survivors at mu_floor=0.03) on top of VetoWeakBuys.",
+    "honest_caveat": "mu_floor is a COARSE QUALITY FILTER that keeps the highest-calibrated-mu names; it is NOT a proof of robustness in BULL_CALM. XGB's BULL_CALM real IC is ~+0.0149 (placebo > real), so the underlying signal is near-zero-information there and no mu threshold manufactures edge. This override deliberately accepts weak-regime trading behind this coarse filter, pending the withdrawal trigger below."
+  },
+  "override_withdrawal_trigger": [
+    "Re-enable regime_admission (withdraw all-regime override) when a model refresh lifts BULL_CALM placebo-clean IC >= +0.02 (the residual-audit / signal-repair success bar).",
+    "OR if live BULL_CALM realized P&L underperforms SPY by >= 3% over the next 20 closed BULL_CALM trades."
   ]
 }
