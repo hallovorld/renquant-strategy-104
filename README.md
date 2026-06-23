@@ -31,14 +31,17 @@ implementation, raw data, or model checkpoints.
 - `configs/strategy_config.shadow.json`
 - `configs/xgb_prod_artifact_manifest.json`
 
-`xgb_prod_artifact_manifest.json` records the 2026-06-23 operator-directed
-production promotion boundary: XGB (alpha158_fund) is the primary scorer, HF
-PatchTST runs as readonly shadow. It supersedes the 2026-06-05 PatchTST manifest.
-It is intentionally separate from the runtime config: the runtime reads
-`strategy_config.json`, while the manifest makes the promotion auditable —
+`xgb_prod_artifact_manifest.json` records the 2026-06-23 **operator-override
+directive** (NOT a normal production promotion): XGB (alpha158_fund) runs as the
+live scorer, HF PatchTST as readonly shadow. It supersedes the 2026-06-05 PatchTST
+manifest. It is intentionally separate from the runtime config: the runtime reads
+`strategy_config.json`, while the manifest makes the override auditable —
 including the honest record that XGB did **not** pass the WF gate and is deployed
-by operator override behind residual controls (`conviction_gate` mu_floor +
-`strict_scorer_match`), with the SPY-lag / weak-BULL_CALM risks disclosed.
+by an exceptional, withdrawable operator override behind residual controls
+(`conviction_gate` mu_floor + `strict_scorer_match`), with the SPY-lag /
+weak-BULL_CALM risks disclosed. See the manifest `scope_claim` for the exact,
+narrowed scope (the swap beats the incumbent PatchTST; it does **not** claim an
+independent edge for all-regime trading).
 
 This repo is the canonical home for RenQuant 104 strategy policy. The umbrella
 RenQuant repo may retain rollback copies under `backtesting/renquant_104/`, but

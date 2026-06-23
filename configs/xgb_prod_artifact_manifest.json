@@ -96,7 +96,7 @@
     "honest_caveat": "mu_floor is a COARSE QUALITY FILTER that keeps the highest-calibrated-mu names; it is NOT a proof of robustness in BULL_CALM. XGB's BULL_CALM real IC is ~+0.0149 (placebo > real), so the underlying signal is near-zero-information there and no mu threshold manufactures edge. This override deliberately accepts weak-regime trading behind this coarse filter, pending the withdrawal trigger below."
   },
   "override_withdrawal_trigger": [
-    "Re-enable regime_admission (withdraw all-regime override) when a model refresh lifts BULL_CALM placebo-clean IC >= +0.02 (the signal-repair bar). NB: the cheap residual-neutralization attempt at this bar was tested and REJECTED by the per-regime WF gate on 2026-06-23 (it destroys the BULL_CALM signal); the repair needs a different lever (drift-free labels or acquired data).",
+    "Re-enable regime_admission (withdraw all-regime override) when a model refresh lifts BULL_CALM placebo-clean IC >= +0.02 (the signal-repair bar), validated by this repo's own WF gate at refresh time.",
     "OR if live BULL_CALM realized P&L underperforms SPY by >= 3% over the next 20 closed BULL_CALM trades."
   ]
 }
