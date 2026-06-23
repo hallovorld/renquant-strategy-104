@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "strategy": "renquant_104",
+  "manifest_role": "operator_override_directive_audit",
+  "effective_date": "2026-06-23",
+  "supersedes": "patchtst_prod_artifact_manifest.json (2026-06-05 PatchTST promotion)",
+  "scope_claim": {
+    "this_is": "an exceptional, withdrawable operator directive to run XGB as the live scorer across all regimes, explicitly accepting the disclosed weak-regime risk.",
+    "this_is_not": "a normal production promotion, an acceptance pass, or a claim that all-regime trading is independently justified by model evidence.",
+    "positive_claims_only": [
+      "XGB strictly dominates the incumbent PatchTST on current data (XGB real IC +0.054 passes overall placebo + WF floor; PatchTST -0.02 fails placebo, all-negative scores, 0 live trades) — so as a primary-vs-shadow swap XGB is the better of the two.",
+      "the override is bounded by disclosed risks, residual controls, and a concrete withdrawal trigger."
+    ],
+    "explicitly_not_claimed": [
+      "that mu_floor manufactures or proves a BULL_CALM edge — it does not; BULL_CALM real IC ~+0.0149 is near-zero-information and no threshold creates edge.",
+      "that the single-day threshold-sensitivity snapshot demonstrates the filter neutralizes weak-regime risk over time — it is a one-cross-section sizing description only."
+    ]
+  },
+  "promotion_boundary": {
+    "decision": "operator_directed_prod_shadow_switch",
+    "primary_model_family": "xgb",
+    "previous_primary_model_family": "hf_patchtst",
+    "acceptance_status": "operator_override_with_residual_controls",
+    "reason": "XGB alpha158_fund promoted to primary; HF PatchTST to readonly shadow. On 2026-06-23 data XGB beats PatchTST decisively (XGB real IC +0.054, passes overall placebo + WF floor; PatchTST real IC -0.02, FAILS placebo, all-negative scores, 0 live trades). XGB itself did NOT pass the WF promotion gate (regime-sanity BULL_CALM/CHOPPY + BULL_CALM monotonicity) and lags SPY; promoted by operator override behind the residual controls below."
+  },
+  "production_primary": {
+    "name": "xgb_alpha158_fund_20260621",
+    "kind": "xgb",
+    "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
+    "artifact_path_role": "production_primary",
+    "global_calibration": {
+      "enabled": true,
+      "strict_scorer_match": true,
+      "artifact_path": "artifacts/prod/panel-rank-calibration.json",
+      "artifact_path_role": "production_primary_calibrator",
+      "refit_note": "Re-fit 2026-06-22 against the deployed XGB scorer; scorer_model_content_fingerprint matches."
+    },
+    "conviction_gate": {
+      "enabled": true,
+      "mu_floor": 0.03,
+      "role": "quality guard \u2014 only buy calibrated E[R-SPY] >= 3% (renquant-pipeline #140)"
+    },
+    "regime_admission": {
+      "enabled": false,
+      "residual_risk": "All-regime trading per operator directive; XGB weak in BULL_CALM (IC +0.0149); conviction_gate mu_floor is the active guard; risks disclosed."
+    }
+  },
+  "readonly_shadow": {
+    "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
+    "kind": "hf_patchtst",
+    "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
+    "config_path": "configs/strategy_config.shadow.json",
+    "experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
+  },
+  "residual_controls": [
+    "preflight/model contract",
+    "conviction_gate mu_floor 0.03",
+    "calibrator strict_scorer_match",
+    "QP",
+    "freshness",
+    "drawdown",
+    "sell-only risk gates"
+  ],
+  "disclosed_risks": [
+    "XGB FAILED the WF promotion gate: regime-sanity (BULL_CALM, CHOPPY) + BULL_CALM trade-monotonicity.",
+    "Lags SPY: 0/3 walk-forward cuts beat SPY APY.",
+    "Weak in the dominant regime BULL_CALM (real IC +0.0149, below the 0.02 floor, placebo > real).",
+    "Aggregate real IC +0.054 is BEAR-inflated (carried by a rare, unvalidatable BEAR regime)."
+  ],
+  "follow_up_exit_criteria": [
+    "Strengthen the BULL_CALM cross-sectional signal so regime admission can be re-enabled and the override withdrawn.",
+    "Re-gate XGB after the signal fix and promote only on an organic pass.",
+    "Repair PatchTST to positive real IC or retire it from shadow."
+  ],
+  "mu_floor_evidence": {
+    "role": "Operational sizing rationale for the override (why mu_floor=0.03 keeps a workable book on the live universe) — NOT an edge proof and NOT a temporal-robustness claim. See scope_claim.explicitly_not_claimed.",
+    "as_of": "2026-06-23",
+    "regime": "BULL_CALM (live)",
+    "threshold_sensitivity_top_of_cross_section": {
+      "note": "Calibrated E[R-SPY] (mu) of the top admitted names on the 2026-06-23 BULL_CALM cross-section. mu_floor selects the high-mu tail; the set thins steeply above 0.04 -> 0.03 is the knee that keeps a workable book.",
+      "mu_by_name": {
+        "CRWD": 0.053,
+        "CSCO": 0.042,
+        "AVGO": 0.039,
+        "AMZN": 0.037,
+        "ASML": 0.034
+      },
+      "buy_set_size_by_floor": {
+        "0.02": "most of the rank-floor survivors",
+        "0.03": "the mu>=3% tail (knee)",
+        "0.04": "~CRWD/CSCO/AVGO",
+        "0.05": "~CRWD only"
+      }
+    },
+    "cut_level": "ConvictionGateTask drops the low-mu tail (~15-20% of rank-floor survivors at mu_floor=0.03) on top of VetoWeakBuys.",
+    "honest_caveat": "mu_floor is a COARSE QUALITY FILTER that keeps the highest-calibrated-mu names; it is NOT a proof of robustness in BULL_CALM. XGB's BULL_CALM real IC is ~+0.0149 (placebo > real), so the underlying signal is near-zero-information there and no mu threshold manufactures edge. This override deliberately accepts weak-regime trading behind this coarse filter, pending the withdrawal trigger below."
+  },
+  "override_withdrawal_trigger": [
+    "Re-enable regime_admission (withdraw all-regime override) when a model refresh lifts BULL_CALM placebo-clean IC >= +0.02 (the signal-repair bar), validated by this repo's own WF gate at refresh time.",
+    "OR if live BULL_CALM realized P&L underperforms SPY by >= 3% over the next 20 closed BULL_CALM trades."
+  ]
+}

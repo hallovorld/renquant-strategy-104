@@ -22,7 +22,7 @@ def test_required_policy_configs_exist_and_parse() -> None:
         "strategy_config.json",
         "strategy_config.golden.json",
         "strategy_config.shadow.json",
-        "patchtst_prod_artifact_manifest.json",
+        "xgb_prod_artifact_manifest.json",
     ):
         data = _load(name)
         assert isinstance(data, dict)
@@ -80,19 +80,22 @@ def test_bull_calm_new_buys_and_panel_scorer_contract_are_explicit() -> None:
 
     assert cfg["regime_params"]["BULL_CALM"]["disable_new_buys"] is False
     assert panel["enabled"] is True
-    assert panel["kind"] == "hf_patchtst"
-    assert "patchtst_shadow" in panel["artifact_path"]
+    assert panel["kind"] == "xgb"
+    assert panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
     assert global_cal["enabled"] is True
     assert global_cal["strict_scorer_match"] is True
-    assert "panel-rank-calibration.hf_patchtst" in global_cal["artifact_path"]
+    assert global_cal["artifact_path"] == "artifacts/prod/panel-rank-calibration.json"
+    # Conviction gate (renquant-pipeline #140) is the quality guard that makes the
+    # XGB primary deployable: only buy calibrated E[R-SPY] >= 3%.
+    assert panel["conviction_gate"]["enabled"] is True
+    assert panel["conviction_gate"]["mu_floor"] == 0.03
     assert panel["regime_admission"]["enabled"] is False
-    assert shadow["ranking"]["panel_scoring"]["kind"] == "xgb"
-    assert shadow["ranking"]["panel_scoring"]["artifact_path"] == (
-        "artifacts/prod/panel-ltr.alpha158_fund.json"
-    )
+    # PatchTST is now the readonly shadow.
+    assert shadow["ranking"]["panel_scoring"]["kind"] == "hf_patchtst"
+    assert "patchtst_shadow" in shadow["ranking"]["panel_scoring"]["artifact_path"]
 
 
-def test_patchtst_operator_promotion_contract_is_auditable() -> None:
+def test_xgb_operator_promotion_contract_is_auditable() -> None:
     cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
     golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
     shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
@@ -100,53 +103,55 @@ def test_patchtst_operator_promotion_contract_is_auditable() -> None:
     golden_panel = golden["ranking"]["panel_scoring"]
     shadow_panel = shadow["ranking"]["panel_scoring"]
 
-    promotion_note = panel.get("_2026_06_05_patchtst_promotion", "")
-    promotion_reason = panel.get("regime_admission", {}).get(
-        "_promotion_reason_2026_06_05", ""
-    )
+    promotion_note = panel.get("_2026_06_23_xgb_promotion", "")
     assert "operator-directed prod/shadow switch" in promotion_note
-    assert "HF PatchTST" in promotion_note
-    assert "XGB moved to readonly shadow" in promotion_note
-    assert "does not yet carry strict WF regime-admission metadata" in promotion_reason
+    assert "XGB" in promotion_note
+    assert "PatchTST moved to readonly shadow" in promotion_note
 
-    assert panel["kind"] == golden_panel["kind"] == "hf_patchtst"
+    assert panel["kind"] == golden_panel["kind"] == "xgb"
     assert panel["artifact_path"] == golden_panel["artifact_path"]
-    assert "patchtst_shadow" in panel["artifact_path"], (
-        "If the primary PatchTST artifact is renamed into a prod registry, "
-        "update this assertion and the 2026-06-07 status audit together."
-    )
+    assert panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
     assert panel["global_calibration"] == golden_panel["global_calibration"]
     assert panel["global_calibration"]["strict_scorer_match"] is True
-    assert "artifacts/shadow/" in panel["global_calibration"]["artifact_path"]
+    assert (
+        panel["global_calibration"]["artifact_path"]
+        == "artifacts/prod/panel-rank-calibration.json"
+    )
+    assert panel["conviction_gate"]["mu_floor"] == 0.03
     assert panel["regime_admission"]["enabled"] is False
+    assert (
+        "XGB trades ALL regimes"
+        in panel["regime_admission"]["_promotion_reason_2026_06_23"]
+    )
 
     shadow_models = panel.get("shadow_models") or []
     assert shadow_models == [
         {
-            "name": "xgb_alpha158_fund_previous_primary",
-            "kind": "xgb",
-            "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
-            "_2026_06_05_role": (
+            "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
+            "kind": "hf_patchtst",
+            "artifact_path": shadow_panel["artifact_path"],
+            "_2026_06_23_role": (
                 "Previous primary scorer moved to strategy_config.shadow.json "
-                "after PatchTST promotion."
+                "after XGB promotion."
             ),
         }
     ]
-    assert panel["shadow_experiment"] == (
-        "renquant_104_xgb_shadow_after_patchtst_promotion"
+    assert (
+        panel["shadow_experiment"]
+        == "renquant_104_patchtst_shadow_after_xgb_promotion"
     )
-    assert shadow_panel["kind"] == "xgb"
-    assert shadow_panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
-    assert "production primary is HF PatchTST" in shadow["ranking"].get(
-        "_2026_06_05_shadow_switch", ""
+    assert shadow_panel["kind"] == "hf_patchtst"
+    assert "patchtst_shadow" in shadow_panel["artifact_path"]
+    assert "production primary is XGB" in shadow["ranking"].get(
+        "_2026_06_23_shadow_switch", ""
     )
 
 
-def test_patchtst_prod_artifact_manifest_matches_runtime_configs() -> None:
+def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
     cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
     golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
     shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
-    manifest = _load("patchtst_prod_artifact_manifest.json")
+    manifest = _load("xgb_prod_artifact_manifest.json")
     panel = cfg["ranking"]["panel_scoring"]
     golden_panel = golden["ranking"]["panel_scoring"]
     shadow_panel = shadow["ranking"]["panel_scoring"]
@@ -156,45 +161,56 @@ def test_patchtst_prod_artifact_manifest_matches_runtime_configs() -> None:
 
     assert manifest["schema_version"] == 1
     assert manifest["strategy"] == "renquant_104"
-    assert manifest["manifest_role"] == "production_primary_scorer_audit"
+    assert manifest["manifest_role"] == "operator_override_directive_audit"
     assert manifest["promotion_boundary"]["decision"] == (
         "operator_directed_prod_shadow_switch"
     )
+    assert manifest["promotion_boundary"]["primary_model_family"] == "xgb"
     assert manifest["promotion_boundary"]["acceptance_status"] == (
         "operator_override_with_residual_controls"
     )
 
-    assert primary["kind"] == panel["kind"] == golden_panel["kind"] == "hf_patchtst"
-    assert primary["artifact_path"] == panel["artifact_path"]
-    assert primary["artifact_path"] == golden_panel["artifact_path"]
+    # Scope is narrowed to an exceptional, withdrawable override — NOT a promotion.
+    scope = manifest["scope_claim"]
+    assert "operator directive" in scope["this_is"]
+    assert "normal production promotion" in scope["this_is_not"]
+    assert scope["positive_claims_only"] and scope["explicitly_not_claimed"]
+    assert any("does not" in c.lower() for c in scope["explicitly_not_claimed"])
+
+    assert primary["kind"] == panel["kind"] == golden_panel["kind"] == "xgb"
+    assert primary["artifact_path"] == panel["artifact_path"] == golden_panel["artifact_path"]
     assert primary["artifact_path_role"] == "production_primary"
-    assert "patchtst_shadow" in primary["artifact_path"]
-    assert "production primary" in primary["artifact_path_naming_caveat"]
 
     runtime_cal = panel["global_calibration"]
     assert primary_cal["enabled"] == runtime_cal["enabled"] is True
-    assert primary_cal["strict_scorer_match"] == runtime_cal["strict_scorer_match"]
+    assert primary_cal["strict_scorer_match"] == runtime_cal["strict_scorer_match"] is True
     assert primary_cal["artifact_path"] == runtime_cal["artifact_path"]
     assert primary_cal["artifact_path"] == golden_panel["global_calibration"]["artifact_path"]
     assert primary_cal["artifact_path_role"] == "production_primary_calibrator"
-    assert "artifacts/shadow/" in primary_cal["artifact_path"]
 
-    assert primary["regime_admission"]["enabled"] == (
-        panel["regime_admission"]["enabled"]
-    ) is False
-    assert "regime-admission metadata" in primary["regime_admission"]["residual_risk"]
+    assert primary["conviction_gate"]["mu_floor"] == panel["conviction_gate"]["mu_floor"] == 0.03
+    assert primary["regime_admission"]["enabled"] == panel["regime_admission"]["enabled"] is False
 
-    assert shadow_manifest["name"] == "xgb_alpha158_fund_previous_primary"
-    assert shadow_manifest["kind"] == shadow_panel["kind"] == "xgb"
+    assert shadow_manifest["name"] == "hf_patchtst_pt07_strict_seed44_previous_primary"
+    assert shadow_manifest["kind"] == shadow_panel["kind"] == "hf_patchtst"
     assert shadow_manifest["artifact_path"] == shadow_panel["artifact_path"]
     assert shadow_manifest["config_path"] == "configs/strategy_config.shadow.json"
     assert shadow_manifest["experiment"] == panel["shadow_experiment"]
 
+    # The override is honestly recorded: XGB did not pass the gate; risks disclosed.
+    assert "conviction_gate mu_floor 0.03" in manifest["residual_controls"]
     assert "calibrator strict_scorer_match" in manifest["residual_controls"]
+    assert any("FAILED the WF promotion gate" in r for r in manifest["disclosed_risks"])
+    assert any("Lags SPY" in r for r in manifest["disclosed_risks"])
     assert any(
-        "prod-named artifact registry" in item
-        for item in manifest["follow_up_exit_criteria"]
+        "Strengthen the BULL_CALM" in c for c in manifest["follow_up_exit_criteria"]
     )
+    # Path B evidence: threshold sensitivity + honest caveat + concrete withdrawal trigger.
+    assert "mu_floor_evidence" in manifest
+    assert "coarse quality filter" in manifest["mu_floor_evidence"]["honest_caveat"].lower() \
+        or "COARSE QUALITY FILTER" in manifest["mu_floor_evidence"]["honest_caveat"]
+    assert manifest["mu_floor_evidence"]["threshold_sensitivity_top_of_cross_section"]["mu_by_name"]["CRWD"] == 0.053
+    assert any("regime_admission" in t for t in manifest["override_withdrawal_trigger"])
 
 
 def test_execution_contract_is_explicit() -> None:

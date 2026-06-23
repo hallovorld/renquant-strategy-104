@@ -855,27 +855,24 @@
   "blend_n_symbols": 103,
   "panel_scoring": {
    "enabled": true,
-   "signal_gate_prefer_calibrated_mu": true,
-   "_signal_gate_prefer_calibrated_mu_reason": "2026-06-10 root-cause fix for structural sell-only. PatchTST is a cross-sectional ranker whose raw panel_score is intrinsically all-negative (output head centres near raw=-0.20; signal is in the relative ordering, OOS IC~0.13). The calibrator's ER=0 neutral sits at raw=-0.198, so calibrated mu>0 means 'ranked above the model neutral' = genuinely bullish. The legacy raw>0 direction gate assumes 0=neutral and blocks 100% of names (verified 0/142 admitted asof 2026-06-10), so the book can never open a long. With this flag the direction test becomes calibrated mu>0 alone (mu>0 <=> raw>neutral_raw), admitting the top-ranked names (80/142; e.g. DDOG/SMCI/FTNT/QCOM/CRWD mu +5-6pct, P 0.62-0.65). Requires pipeline signal_gate_prefer_calibrated_mu support (PR #98).",
    "bypass_ticker_gate": true,
-   "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
+   "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
    "nan_prone_cols": [],
-   "buy_floor": "adaptive_quantile",
+   "buy_floor": "adaptive_mean_std",
    "buy_floor_adaptive_cap": 0.3,
    "buy_floor_min": 0.2,
    "buy_floor_std_mult": 1,
-   "_buy_floor_reason": "2026-06-11 false-BEAR audit P2 (operator-approved audit; pipeline #113): adaptive_mean_std (max(0.20, mean+1*std), uncapped) is shape-unstable on the Platt-compressed PatchTST calibrator (rank_score IQR=0.039 on 2026-06-11; dropped 71/83=86%) and structurally caps breadth at ~16% regardless of edge (Grinold FLAM: IR=IC*sqrt(BR)). adaptive_quantile admits the top (1-q)=20% of the cross-section by calibrated rank \u2014 breadth becomes a deliberate parameter, stable under score compression. buy_floor_min=0.20 remains the absolute fail-safe on degenerate cross-sections. Requires pipeline #113.",
+   "_buy_floor_reason": "2026-05-21 Codex audit: use uncapped cross-sectional mean+1*std on calibrated rank_score. The prior adaptive_mean_std_cap mode capped the floor at 0.30; once calibrated scores clustered around 0.55-0.65, the floor became a no-op and admitted nearly every candidate. This follows cross-sectional normalization/ranking practice (Qlib CSRankNorm/CSZFillna) while preserving the no-signal behavior when mean+std exceeds all compressed scores. adaptive_mean_std_cap remains for old experiments only.",
    "rotation_advantage": 0,
    "sizing": {
-    "enabled": false,
+    "enabled": true,
     "floor": 0,
     "ceiling": 0.3,
-    "min_mult": 0,
-    "_note_20260609": "conviction multiplier mapped raw panel_score with GBDT floor=0/ceiling=0.3; pt07 centers -0.19 -> multiplier 0 zeroed every buy. Kelly target already encodes conviction."
+    "min_mult": 0
    },
    "ngboost": {
     "enabled": false,
-    "artifact_path": "artifacts/shadow/ngboost-head.alpha158_fund.shadow.json",
+    "artifact_path": "artifacts/prod/ngboost-head.alpha158_fund.json",
     "score_mode": "additive",
     "lambda_sigma": 0,
     "_disable_reason": "2026-05-09 EVENING REVERT after SIM-A vs SIM-B 27-month A/B (E55): NGB-on APY=+2.99% Sharpe=+0.26 trades=455 LOSES to NGB-off APY=+6.77% Sharpe=+0.40 trades=303 by -3.78 APY pts / -0.14 Sharpe. The \u03c3-aware sizing degrades position selection AND increases churn vs. simple rank-only QP. Pure-alpha component too weak (~+0.018) to justify the friction it introduces. NGB head artifact retained for future use; flag stays off until either pure_alpha \u2265+0.04 or alternative sizing scheme proves itself."
@@ -887,8 +884,7 @@
    },
    "global_calibration": {
     "enabled": true,
-    "artifact_path": "artifacts/shadow/panel-rank-calibration.hf_patchtst_seed44_trainfit_20230103_20240409.json",
-    "strict_scorer_match": true,
+    "artifact_path": "artifacts/prod/panel-rank-calibration.json",
     "regime_conditional": {
      "enabled": false,
      "artifact_pattern": "artifacts/panel-calibration-{regime}.json",
@@ -898,7 +894,8 @@
       "CHOPPY",
       "BEAR"
      ]
-    }
+    },
+    "strict_scorer_match": true
    },
    "quality_floor": {
     "enabled": true,
@@ -919,7 +916,7 @@
     "enabled": true,
     "threshold": 0.1
    },
-   "kind": "hf_patchtst",
+   "kind": "xgb",
    "_2026-05-19_kind_fix": "renamed from 'panel_ltr_xgboost' to 'xgb' to match model_registry. commit 9a6cca1 (2026-05-18) introduced registry-dispatch in LoadScorerTask. Synced from strategy_config.golden.json (also fixed). Without this fix LoadScorerTask logs ERROR + returns False, panel scorer never runs, candidates get only per-ticker scores, QP returns optimal_no_signal, zero trades.",
    "sentiment": {
     "enabled": true,
@@ -941,22 +938,26 @@
     },
     "_2026-05-18_provenance": "Tier 2 SCREEN per regime-stratified IC eval; see doc/research/2026-05-18-news-sentiment-ic-verdict.md"
    },
-   "shadow_models": [
-    {
-     "name": "xgb_alpha158_fund_previous_primary",
-     "kind": "xgb",
-     "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
-     "_2026_06_05_role": "Previous primary scorer moved to strategy_config.shadow.json after PatchTST promotion."
-    }
-   ],
-   "shadow_tracking_uri": "file:./mlruns",
-   "shadow_experiment": "renquant_104_xgb_shadow_after_patchtst_promotion",
    "regime_admission": {
     "enabled": false,
-    "_promotion_reason_2026_06_05": "Operator-directed PatchTST promotion from shadow to primary. Current HF checkpoint does not yet carry strict WF regime-admission metadata, so runtime regime admission remains disabled for this scorer; preflight/model contract, calibrator strict_scorer_match, QP, freshness, drawdown, and sell-only risk gates remain active."
+    "_promotion_reason_2026_06_23": "Operator directive: XGB trades ALL regimes to restore live trading. regime admission DISABLED; conviction_gate (mu_floor 0.03) is the active quality guard. Risk (weak BULL_CALM, lags SPY) disclosed in xgb_prod_artifact_manifest.json and accepted by the operator."
    },
-   "_2026_06_05_patchtst_promotion": "2026-06-05 operator-directed prod/shadow switch: HF PatchTST pt07 strict seed44 promoted to primary scorer; XGB moved to readonly shadow config.",
-   "buy_floor_quantile": 0.8
+   "_2026_06_05_shadow_switch": "Previous XGB primary scorer moved to readonly shadow after operator-directed PatchTST promotion.",
+   "conviction_gate": {
+    "enabled": true,
+    "mu_floor": 0.03,
+    "_2026_06_23": "Only buy names whose calibrated E[R-SPY] >= 3% (renquant-pipeline #140). Drops near-break-even noise (NFLX/ZM, mu~=0); keeps PANW/CSCO."
+   },
+   "_2026_06_23_xgb_promotion": "operator-directed prod/shadow switch: XGB alpha158_fund promoted to primary scorer; HF PatchTST moved to readonly shadow. XGB beats PatchTST on 2026-06-23 data (real IC +0.054 vs -0.02; PatchTST fails placebo).",
+   "shadow_models": [
+    {
+     "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
+     "kind": "hf_patchtst",
+     "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
+     "_2026_06_23_role": "Previous primary scorer moved to strategy_config.shadow.json after XGB promotion."
+    }
+   ],
+   "shadow_experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
   },
   "universe_floor": {
    "type": "sharpe",
