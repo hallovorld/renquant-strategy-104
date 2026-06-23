@@ -894,7 +894,8 @@
       "CHOPPY",
       "BEAR"
      ]
-    }
+    },
+    "strict_scorer_match": true
    },
    "quality_floor": {
     "enabled": true,
@@ -938,16 +939,25 @@
     "_2026-05-18_provenance": "Tier 2 SCREEN per regime-stratified IC eval; see doc/research/2026-05-18-news-sentiment-ic-verdict.md"
    },
    "regime_admission": {
-    "enabled": true,
-    "_2026_06_22": "Kept ON: XGB has no validated edge in BULL_CALM (IC +0.0149); regime admission blocks it there so it only trades validated regimes. Flip to false for all-regime trading (then conviction_gate still filters by mu)."
+    "enabled": false,
+    "_promotion_reason_2026_06_23": "XGB does not pass regime-sanity in BULL_CALM (IC +0.0149); regime admission disabled per operator directive so XGB trades all regimes. conviction_gate mu_floor is the quality guard; risk disclosed in xgb_prod_artifact_manifest.json."
    },
    "_2026_06_05_shadow_switch": "Previous XGB primary scorer moved to readonly shadow after operator-directed PatchTST promotion.",
    "conviction_gate": {
     "enabled": true,
     "mu_floor": 0.03,
-    "_2026_06_22": "Only buy names whose calibrated E[R-SPY] >= 3% (drops near-break-even noise like NFLX/ZM, keeps PANW/CSCO). Requires renquant-pipeline #140; no-op on older pins."
+    "_2026_06_23": "Only buy names whose calibrated E[R-SPY] >= 3% (renquant-pipeline #140). Drops near-break-even noise (NFLX/ZM, mu~=0); keeps PANW/CSCO."
    },
-   "_2026_06_22_promotion": "XGB -> PRIMARY behind a conviction gate (mu_floor 3%) + regime admission. Supersedes the all-relaxed #31. PatchTST -> shadow. Real WF: Sharpe 0.70 vs SPY 1.08, 0/3 cuts beat SPY APY; operator-authorized (PR #168 risk disclosure)."
+   "_2026_06_23_xgb_promotion": "operator-directed prod/shadow switch: XGB alpha158_fund promoted to primary scorer; HF PatchTST moved to readonly shadow. XGB beats PatchTST on 2026-06-23 data (real IC +0.054 vs -0.02; PatchTST fails placebo).",
+   "shadow_models": [
+    {
+     "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
+     "kind": "hf_patchtst",
+     "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
+     "_2026_06_23_role": "Previous primary scorer moved to strategy_config.shadow.json after XGB promotion."
+    }
+   ],
+   "shadow_experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
   },
   "universe_floor": {
    "type": "sharpe",
@@ -1259,9 +1269,6 @@
  },
  "min_reentry_days": 5,
  "_min_reentry_days_provenance": "2026-05-18 13:55 PT: MCD sold +$14.02 yesterday, model picked again today $5 higher = $15 round-trip loss. min_reentry_days=5 (business days) blocks all re-buys within 5d regardless of P/L sign \u2014 compounds with wash_sale_days (\u00a71091, loss only). Default 5d = ~1 trading week, enough for sentiment + technical signals to materially change.",
- "walkforward": {
-  "manifest_path": "/Users/renhao/git/github/RenQuant/backtesting/renquant_104/artifacts/sim/walkforward_manifest_dropsenti_v3.json"
- },
  "wf_gate": {
   "benchmark_required": false,
   "regime_required": false,

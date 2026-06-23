@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "strategy": "renquant_104",
+  "manifest_role": "production_primary_scorer_audit",
+  "effective_date": "2026-06-23",
+  "supersedes": "patchtst_prod_artifact_manifest.json (2026-06-05 PatchTST promotion)",
+  "promotion_boundary": {
+    "decision": "operator_directed_prod_shadow_switch",
+    "primary_model_family": "xgb",
+    "previous_primary_model_family": "hf_patchtst",
+    "acceptance_status": "operator_override_with_residual_controls",
+    "reason": "XGB alpha158_fund promoted to primary; HF PatchTST to readonly shadow. On 2026-06-23 data XGB beats PatchTST decisively (XGB real IC +0.054, passes overall placebo + WF floor; PatchTST real IC -0.02, FAILS placebo, all-negative scores, 0 live trades). XGB itself did NOT pass the WF promotion gate (regime-sanity BULL_CALM/CHOPPY + BULL_CALM monotonicity) and lags SPY; promoted by operator override behind the residual controls below."
+  },
+  "production_primary": {
+    "name": "xgb_alpha158_fund_20260621",
+    "kind": "xgb",
+    "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
+    "artifact_path_role": "production_primary",
+    "global_calibration": {
+      "enabled": true,
+      "strict_scorer_match": true,
+      "artifact_path": "artifacts/prod/panel-rank-calibration.json",
+      "artifact_path_role": "production_primary_calibrator",
+      "refit_note": "Re-fit 2026-06-22 against the deployed XGB scorer; scorer_model_content_fingerprint matches."
+    },
+    "conviction_gate": {
+      "enabled": true,
+      "mu_floor": 0.03,
+      "role": "quality guard \u2014 only buy calibrated E[R-SPY] >= 3% (renquant-pipeline #140)"
+    },
+    "regime_admission": {
+      "enabled": false,
+      "residual_risk": "XGB does not pass regime-sanity in BULL_CALM (IC +0.0149); regime admission disabled per operator directive so XGB trades all regimes; conviction_gate + disclosure are the residual controls."
+    }
+  },
+  "readonly_shadow": {
+    "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
+    "kind": "hf_patchtst",
+    "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
+    "config_path": "configs/strategy_config.shadow.json",
+    "experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
+  },
+  "residual_controls": [
+    "preflight/model contract",
+    "conviction_gate mu_floor 0.03",
+    "calibrator strict_scorer_match",
+    "QP",
+    "freshness",
+    "drawdown",
+    "sell-only risk gates"
+  ],
+  "disclosed_risks": [
+    "XGB FAILED the WF promotion gate: regime-sanity (BULL_CALM, CHOPPY) + BULL_CALM trade-monotonicity.",
+    "Lags SPY: 0/3 walk-forward cuts beat SPY APY.",
+    "Weak in the dominant regime BULL_CALM (real IC +0.0149, below the 0.02 floor, placebo > real).",
+    "Aggregate real IC +0.054 is BEAR-inflated (carried by a rare, unvalidatable BEAR regime)."
+  ],
+  "follow_up_exit_criteria": [
+    "Strengthen the BULL_CALM cross-sectional signal so regime admission can be re-enabled and the override withdrawn.",
+    "Re-gate XGB after the signal fix and promote only on an organic pass.",
+    "Repair PatchTST to positive real IC or retire it from shadow."
+  ]
+}

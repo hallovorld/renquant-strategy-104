@@ -931,7 +931,8 @@
   "ngboost": {
    "enabled": false
   },
-  "_2026_06_05_shadow_switch": "Readonly shadow now runs previous XGB primary scorer; production primary is HF PatchTST."
+  "_2026_06_05_shadow_switch": "Readonly shadow now runs previous XGB primary scorer; production primary is HF PatchTST.",
+  "_2026_06_23_shadow_switch": "production primary is XGB (alpha158_fund); HF PatchTST runs here as readonly shadow."
  },
  "panel_ltr": {
   "lookahead_days": 60,
