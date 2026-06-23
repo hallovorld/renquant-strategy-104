@@ -89,7 +89,7 @@ def test_bull_calm_new_buys_and_panel_scorer_contract_are_explicit() -> None:
     # XGB primary deployable: only buy calibrated E[R-SPY] >= 3%.
     assert panel["conviction_gate"]["enabled"] is True
     assert panel["conviction_gate"]["mu_floor"] == 0.03
-    assert panel["regime_admission"]["enabled"] is False
+    assert panel["regime_admission"]["enabled"] is True
     # PatchTST is now the readonly shadow.
     assert shadow["ranking"]["panel_scoring"]["kind"] == "hf_patchtst"
     assert "patchtst_shadow" in shadow["ranking"]["panel_scoring"]["artifact_path"]
@@ -118,7 +118,7 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
         == "artifacts/prod/panel-rank-calibration.json"
     )
     assert panel["conviction_gate"]["mu_floor"] == 0.03
-    assert panel["regime_admission"]["enabled"] is False
+    assert panel["regime_admission"]["enabled"] is True
     assert (
         "does not pass regime-sanity in BULL_CALM"
         in panel["regime_admission"]["_promotion_reason_2026_06_23"]
@@ -182,7 +182,7 @@ def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
     assert primary_cal["artifact_path_role"] == "production_primary_calibrator"
 
     assert primary["conviction_gate"]["mu_floor"] == panel["conviction_gate"]["mu_floor"] == 0.03
-    assert primary["regime_admission"]["enabled"] == panel["regime_admission"]["enabled"] is False
+    assert primary["regime_admission"]["enabled"] == panel["regime_admission"]["enabled"] is True
 
     assert shadow_manifest["name"] == "hf_patchtst_pt07_strict_seed44_previous_primary"
     assert shadow_manifest["kind"] == shadow_panel["kind"] == "hf_patchtst"

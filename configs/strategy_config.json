@@ -939,8 +939,8 @@
     "_2026-05-18_provenance": "Tier 2 SCREEN per regime-stratified IC eval; see doc/research/2026-05-18-news-sentiment-ic-verdict.md"
    },
    "regime_admission": {
-    "enabled": false,
-    "_promotion_reason_2026_06_23": "XGB does not pass regime-sanity in BULL_CALM (IC +0.0149); regime admission disabled per operator directive so XGB trades all regimes. conviction_gate mu_floor is the quality guard; risk disclosed in xgb_prod_artifact_manifest.json."
+    "enabled": true,
+    "_promotion_reason_2026_06_23": "XGB does not pass regime-sanity in BULL_CALM/CHOPPY (BULL_CALM IC +0.0149). regime admission ENABLED so XGB only trades regimes where its WF regime-admission metadata validates \u2014 NOT BULL_CALM. conviction_gate (mu_floor) further filters within admitted regimes. Widening to all regimes is NOT a config toggle: it requires strengthening the BULL_CALM signal (Path 1), since disabling this guard would just trade a near-zero-edge signal."
    },
    "_2026_06_05_shadow_switch": "Previous XGB primary scorer moved to readonly shadow after operator-directed PatchTST promotion.",
    "conviction_gate": {

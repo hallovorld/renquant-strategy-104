@@ -29,8 +29,8 @@
       "role": "quality guard \u2014 only buy calibrated E[R-SPY] >= 3% (renquant-pipeline #140)"
     },
     "regime_admission": {
-      "enabled": false,
-      "residual_risk": "XGB does not pass regime-sanity in BULL_CALM (IC +0.0149); regime admission disabled per operator directive so XGB trades all regimes; conviction_gate + disclosure are the residual controls."
+      "enabled": true,
+      "residual_risk": "XGB fails regime-sanity in BULL_CALM/CHOPPY; regime admission ENABLED so XGB trades only validated regimes (not BULL_CALM). This narrows the deployment surface deliberately rather than trading a near-zero-edge signal. mu_floor is the additional within-regime quality filter."
     }
   },
   "readonly_shadow": {
