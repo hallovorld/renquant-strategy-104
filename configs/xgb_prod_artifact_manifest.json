@@ -1,9 +1,21 @@
 {
   "schema_version": 1,
   "strategy": "renquant_104",
-  "manifest_role": "production_primary_scorer_audit",
+  "manifest_role": "operator_override_directive_audit",
   "effective_date": "2026-06-23",
   "supersedes": "patchtst_prod_artifact_manifest.json (2026-06-05 PatchTST promotion)",
+  "scope_claim": {
+    "this_is": "an exceptional, withdrawable operator directive to run XGB as the live scorer across all regimes, explicitly accepting the disclosed weak-regime risk.",
+    "this_is_not": "a normal production promotion, an acceptance pass, or a claim that all-regime trading is independently justified by model evidence.",
+    "positive_claims_only": [
+      "XGB strictly dominates the incumbent PatchTST on current data (XGB real IC +0.054 passes overall placebo + WF floor; PatchTST -0.02 fails placebo, all-negative scores, 0 live trades) — so as a primary-vs-shadow swap XGB is the better of the two.",
+      "the override is bounded by disclosed risks, residual controls, and a concrete withdrawal trigger."
+    ],
+    "explicitly_not_claimed": [
+      "that mu_floor manufactures or proves a BULL_CALM edge — it does not; BULL_CALM real IC ~+0.0149 is near-zero-information and no threshold creates edge.",
+      "that the single-day threshold-sensitivity snapshot demonstrates the filter neutralizes weak-regime risk over time — it is a one-cross-section sizing description only."
+    ]
+  },
   "promotion_boundary": {
     "decision": "operator_directed_prod_shadow_switch",
     "primary_model_family": "xgb",
@@ -61,6 +73,7 @@
     "Repair PatchTST to positive real IC or retire it from shadow."
   ],
   "mu_floor_evidence": {
+    "role": "Operational sizing rationale for the override (why mu_floor=0.03 keeps a workable book on the live universe) — NOT an edge proof and NOT a temporal-robustness claim. See scope_claim.explicitly_not_claimed.",
     "as_of": "2026-06-23",
     "regime": "BULL_CALM (live)",
     "threshold_sensitivity_top_of_cross_section": {

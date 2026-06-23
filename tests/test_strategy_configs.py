@@ -161,7 +161,7 @@ def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
 
     assert manifest["schema_version"] == 1
     assert manifest["strategy"] == "renquant_104"
-    assert manifest["manifest_role"] == "production_primary_scorer_audit"
+    assert manifest["manifest_role"] == "operator_override_directive_audit"
     assert manifest["promotion_boundary"]["decision"] == (
         "operator_directed_prod_shadow_switch"
     )
@@ -169,6 +169,13 @@ def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
     assert manifest["promotion_boundary"]["acceptance_status"] == (
         "operator_override_with_residual_controls"
     )
+
+    # Scope is narrowed to an exceptional, withdrawable override — NOT a promotion.
+    scope = manifest["scope_claim"]
+    assert "operator directive" in scope["this_is"]
+    assert "normal production promotion" in scope["this_is_not"]
+    assert scope["positive_claims_only"] and scope["explicitly_not_claimed"]
+    assert any("does not" in c.lower() for c in scope["explicitly_not_claimed"])
 
     assert primary["kind"] == panel["kind"] == golden_panel["kind"] == "xgb"
     assert primary["artifact_path"] == panel["artifact_path"] == golden_panel["artifact_path"]
