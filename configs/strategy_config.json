@@ -946,7 +946,9 @@
    "conviction_gate": {
     "enabled": true,
     "mu_floor": 0.03,
-    "_2026_06_23": "Only buy names whose calibrated E[R-SPY] >= 3% (renquant-pipeline #140). Drops near-break-even noise (NFLX/ZM, mu~=0); keeps PANW/CSCO."
+    "demean_cross_sectional": true,
+    "_2026_06_23": "Only buy names whose calibrated E[R-SPY] >= 3% (renquant-pipeline #140). Drops near-break-even noise (NFLX/ZM, mu~=0); keeps PANW/CSCO.",
+    "_2026_06_24_demean": "demean_cross_sectional ON (renquant-pipeline #145 + footgun fix #147): subtract the FULL cross-sectional mean of mu before the 0.03 floor so the +0.0245 calibration intercept carries no conviction and the floor gates RELATIVE conviction (Grinold). Validated offline across 20 live runs (0/20 zero-buy days; keeps MU/CRWD/PANW/CSCO, drops the near-floor intercept buys CME/NFLX/AMZN). Requires pipeline pin >= 42d6205 (the footgun fix) — without it demean over the post-veto subset admits 0."
    },
    "_2026_06_23_xgb_promotion": "operator-directed prod/shadow switch: XGB alpha158_fund promoted to primary scorer; HF PatchTST moved to readonly shadow. XGB beats PatchTST on 2026-06-23 data (real IC +0.054 vs -0.02; PatchTST fails placebo).",
    "shadow_models": [
