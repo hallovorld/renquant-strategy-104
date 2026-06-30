@@ -100,14 +100,16 @@ def test_cash_drag_slot_counts_stay_at_production_8_3() -> None:
 
 def test_fractional_shares_enabled_and_pinned() -> None:
     """Pin the fractional-shares flag — the REAL lever for the 2026-06-29
-    cash-drag bottleneck (follow-up to PR #35). High-priced names
+    cash-drag bottleneck (follow-up to strategy-104 PR #35). High-priced names
     (AVGO/BLK/GS) are selected but skipped by whole-share rounding because
     their Kelly targets (~$400, ~4%) are smaller than one share. With
     execution.fractional_shares.enabled the pipeline sizes the capped target
-    as a FLOAT quantity (renquant-pipeline #35) and the live Alpaca broker
-    submits it for fractionable symbols (renquant-execution fractionable
+    as a FLOAT quantity (renquant-pipeline #153) and the live Alpaca broker
+    submits it for fractionable symbols (renquant-execution #19 fractionable
     guard). This ONLY removes the rounding skip — it does NOT change name
-    selection, the per-name target fraction, caps, or signal quality.
+    selection, the per-name target fraction, caps, or signal quality. This is a
+    deploy-candidate (fractional ON in active+golden), gated on execution #19
+    and pipeline #153 merging+pinning first — not a proposal.
     Active and golden MUST agree for the CI semantic-match contract."""
     active = _load("strategy_config.json")
     golden = _load("strategy_config.golden.json")
