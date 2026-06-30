@@ -178,8 +178,8 @@
   "percentile_threshold": 85
  },
  "training_years": 2.5,
- "max_concurrent_positions": 12,
- "_2026_06_29_cash_drag": "Raised 8->12 (with rotation.panel_buy_top_n 3->5) to relieve measured cash drag: a real 2026-06-29 daily-full deployed only $827 of $8,730 buying power (live book ~46% deployed, 5-7 positions, ~54% cash) after the demean-revert (#34) restored buying. Root cause is the slot caps plus small Kelly targets from low model mu (0.03-0.05 -> f*=mu/sigma^2 -> ~3-5% per name), NOT loose risk: the per-name 12% cap is never hit. This change ONLY lets the book hold more small positions; per-name (max_concentration 0.12, BULL_CALM max_position_pct 0.12) and per-sector (max_positions_per_sector 6, max_sector_weight_pct) caps are deliberately unchanged, and Kelly fractional stays 0.30. 12/5 are a calibrated first pass for operator/Codex review, not a tuned optimum. Reversible: revert these two integers.",
+ "max_concurrent_positions": 10,
+ "_2026_06_29_cash_drag": "STAGED first step 8/3->10/4 (Codex review: staged, not a jump to 12/5). Raised 8->10 (with rotation.panel_buy_top_n 3->4) to begin relieving measured cash drag: a real 2026-06-29 daily-full deployed only $827 of $8,730 buying power (live book ~46% deployed, 5-7 positions, ~54% cash) after the demean-revert (#34) restored buying. Root cause is the slot caps plus small Kelly targets from low model mu (0.03-0.05 -> f*=mu/sigma^2 -> ~3-5% per name), NOT loose risk: the per-name 12% cap is never hit. This change ONLY lets the book hold more small positions; per-name (max_concentration 0.12, BULL_CALM max_position_pct 0.12) and per-sector (max_positions_per_sector 6, max_sector_weight_pct) caps are deliberately unchanged, and Kelly fractional stays 0.30. This is the same FAMILY of knob as the disabled qp_cash_drag_lambda=0 cash-deployment-pressure safeguard (it raises total exposure to a ranking the PR itself calls suspect), so it is staged small with a hard rollback, not promoted to 12/5. Promote 10/4->12/5 only after the decision-ledger shows the slot-4+ names are not net-negative benchmark-relative. Reversible: revert these two integers to 8/3.",
  "parallel_workers": null,
  "parallel_ticker_timeout_seconds": 600,
  "parallel_progress_log_seconds": 30,
@@ -694,8 +694,8 @@
   "max_rotations_per_bar": 1,
   "panel_buy_floor": 0.3,
   "panel_sell_floor": 0.2,
-  "panel_buy_top_n": 5,
-  "_panel_buy_top_n_2026_06_29_cash_drag": "Raised 3->5 (paired with top-level max_concurrent_positions 8->12) to relieve measured cash drag. With <=3 new buys/run and only 3 open slots, the 2026-06-29 daily-full could SELECT only 3 of 6 veto survivors (SOFI/NEE/BLK) and size 2 (BLK rounded to 0 shares at $950), deploying $827/$8,730. Lets up to 5 new small positions fill per run; per-name/per-sector risk caps and Kelly fractional 0.30 unchanged. Calibrated first pass for review; reversible.",
+  "panel_buy_top_n": 4,
+  "_panel_buy_top_n_2026_06_29_cash_drag": "STAGED first step 8/3->10/4 (Codex review: staged, not a jump to 12/5). Raised 3->4 (paired with top-level max_concurrent_positions 8->10) to begin relieving measured cash drag. With <=3 new buys/run and only 3 open slots, the 2026-06-29 daily-full could SELECT only 3 of 6 veto survivors (SOFI/NEE/BLK) and size 2 (BLK rounded to 0 shares at $950), deploying $827/$8,730. At 10/4 the top-4-by-rank adds AVGO (SOFI/NEE/BLK/AVGO); BLK still rounds to 0. Lets up to 4 new small positions fill per run; per-name/per-sector risk caps and Kelly fractional 0.30 unchanged. Staged first pass for review; reversible to 8/3.",
   "panel_buy_rank_floor": 0.2,
   "joint_actions": {
    "enabled": false,

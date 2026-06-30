@@ -63,18 +63,19 @@ def test_cash_drag_slot_counts_are_pinned_and_active_matches_golden() -> None:
     silently drift. A real daily-full deployed only $827 of $8,730 buying power
     (live book ~46% deployed) because two slot caps -- top-level
     max_concurrent_positions and rotation.panel_buy_top_n -- bounded how many
-    small positions the book can hold, NOT the per-name risk caps. This raises
-    ONLY the slot counts (8->12, 3->5); per-name (max_concentration,
+    small positions the book can hold, NOT the per-name risk caps. Following
+    Codex review this is a STAGED first step 8/3->10/4 (NOT a jump to 12/5):
+    raises ONLY the slot counts (8->10, 3->4); per-name (max_concentration,
     BULL_CALM max_position_pct) and per-sector caps and Kelly fractional are
     deliberately unchanged. Active and golden must agree for the CI
     semantic-match contract."""
     active = _load("strategy_config.json")
     golden = _load("strategy_config.golden.json")
 
-    assert active["max_concurrent_positions"] == 12
-    assert golden["max_concurrent_positions"] == 12
-    assert active["rotation"]["panel_buy_top_n"] == 5
-    assert golden["rotation"]["panel_buy_top_n"] == 5
+    assert active["max_concurrent_positions"] == 10
+    assert golden["max_concurrent_positions"] == 10
+    assert active["rotation"]["panel_buy_top_n"] == 4
+    assert golden["rotation"]["panel_buy_top_n"] == 4
     assert (
         active["max_concurrent_positions"]
         == golden["max_concurrent_positions"]
