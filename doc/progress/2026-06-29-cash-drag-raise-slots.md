@@ -1,51 +1,45 @@
-# cash drag — staged slot raise (proposal)
+# cash drag — analysis record (proposal-only; fractional shares is the real lever)
 
-STATUS:   PROPOSAL PR for Codex review on branch `fix/cash-drag-raise-slots` — NOT deployed, not merged.
-          Revised after Codex CHANGES_REQUESTED: STAGED 10/4, downgraded from the original 12/5.
-WHAT:     Two integers in BOTH `strategy_config.json` + `strategy_config.golden.json` (kept identical):
-          top-level `max_concurrent_positions` 8 → 10, and `rotation.panel_buy_top_n` 3 → 4.
-          Nothing else: per-name (max_concentration 0.12, BULL_CALM max_position_pct 0.12), per-sector
-          (max_positions_per_sector 6, max_sector_weight_pct), Kelly `fractional` 0.30, and the CHOPPY
-          regime override max_concurrent_positions=4 are UNCHANGED.
+STATUS:   ANALYSIS RECORD PR on branch `fix/cash-drag-raise-slots` — proposal-only, NOT a config change.
+          Active/golden config is UNCHANGED (production 8/3); config diff vs main is EMPTY. Merges as the
+          cash-drag decision record. Resolves Codex CHANGES_REQUESTED on PR #35 via OPTION 1 (proposal-only).
+OUTCOME:  Do NOT raise slot counts in isolation. The REAL lever is FRACTIONAL SHARES (+ optional
+          min-conviction floor). Slot count is secondary.
+WHAT:     No config change. The earlier revision had raised top-level max_concurrent_positions 8→10 and
+          rotation.panel_buy_top_n 3→4 in both configs; that is now REVERTED to the production 8/3 in both
+          active and golden, so the diff vs main is docs-only. The pinning test now asserts 8/3 (was 10/4).
 WHY/DIR:  Real cash drag, measured today. After the demean-revert (#34) restored buying, a live `daily-full`
           deployed only $827 of $8,730 buying power; the live book is ~46% deployed / ~54% cash on 5-7
-          positions. Root cause is NOT loose risk (the 12% per-name cap is never hit) — it is two slot caps
-          plus small Kelly targets from low model mu (0.03-0.05 → f*=mu/σ² → ~3-5% per name). Raising slots
-          lets the book hold MORE small positions without enlarging any one of them.
-STAGED:   Codex's CHANGES_REQUESTED was VALID: 12/5 was one-snapshot arithmetic and is the same family of
-          knob as the disabled qp_cash_drag_lambda=0 cash-deployment-pressure safeguard (raises total
-          exposure to a ranking the PR itself calls suspect). So 12/5 was downgraded to a STAGED FIRST STEP
-          10/4, with a single-day counterfactual, head-on lambda-conflict acknowledgement, pre-registered
-          rollback/promote criteria, and an honest validation-status statement. "Per-name risk unchanged" is
-          explicitly NOT claimed to be a sufficient safety argument.
-COUNTERFACTUAL (DERIVED from stored 2026-06-29 scores + selection logic; NOT a fresh exec / full QP replay):
-          6 veto survivors (FTNT/SOFI/NEE/BLK/AVGO/CVX); FTNT correlation-blocked → 5 admissible, book held 5.
-          8/3:  3 open slots, top_n 3 → SELECT SOFI/NEE/BLK; AVGO hit "slots full"; BLK rounds to 0 sh ($950
-                vs ~$400 target) → sized SOFI $473 + NEE $354 = ~$827.
-          10/4: 5 open slots, top_n 4 → adds AVGO (rank #4); BLK still rounds to 0 → ~SOFI+NEE+AVGO ≈ $1,227.
-          12/5: would further add CVX (rank #5).
-          CRITICAL (analyst cross-check, not P&L): the marginal slots admit STREET-BETTER names — AVGO
-          (Strong Buy, ~+35-40% to target) and CVX (Buy, +13%) are higher-rated than SOFI (street Hold)
-          which 8/3 already buys. So the extra slots admit street-BETTER names, not junk — on this one date.
-LAMBDA:   Acknowledged head-on: raising slots IS a cash-deployment-pressure knob in the same family as the
-          disabled qp_cash_drag_lambda=0; total exposure to the suspect ranking rises. Mitigants: staged
-          small (10/4); every strict admission gate UNCHANGED and still binding (WF gate, conviction mu_floor,
-          rank veto mean+1σ, correlation, sector, min-edge, wash-sale, share-rounding); hard rollback.
-ROLLBACK (pre-registered, first-pass): revert 10/4→8/3 if ANY of — deployment doesn't rise ≥+5pp over N=10
-          fresh-feed days; slot-4+ names trail first-3 by >−2.0pp benchmark-relative; rounding/slippage waste
-          >30bps of marginal $ or >40% of marginal admits round to 0 sh; gross >75% BP or drawdown <−8% or any
-          cap breached. PROMOTE 10/4→12/5 ONLY after the ledger shows slot-4+ names are NOT net-negative
-          benchmark-relative (mean ≥0, not worse than first-3) and no revert condition trips.
-VALIDATION STATUS (honest): the decision-ledger is too short for multi-day validation — clean fresh-feed live
-          data only began 2026-06-29. This is a STAGED, reversible first step to be validated via the ledger
-          as it accrues (~Aug 2026 for 60d), NOT a validated optimum. It does NOT fix signal quality (model
-          ranking runs ~inverse to sell-side; orthogonal-signal blend is the 105 track).
-TESTS:    Updated `test_cash_drag_slot_counts_are_pinned_and_active_matches_golden` (pins 10/4 now, asserts
-          active==golden, re-asserts untouched risk knobs). Ran the focused file + full suite green: 27 passed.
-          System python is 3.9 and lacks deps; verified in a throwaway venv (pydantic<3/numpy/pandas/pyarrow/
-          scipy/statsmodels/arch + eval_type_backport) with PYTHONPATH=src:../renquant-common/src. CI uses
-          3.10 natively.
-REVERT:   Flip the two integers back (10→8, 4→3) in both configs. No artifact/retrain/schema change.
-NEXT:     Codex review of the staged 10/4 step; if approved, deploy via promote_pin (merge != live); observe
-          realized deployment + the pre-registered metrics over fresh-feed days; promote to 12/5 only on
-          ledger evidence per §5.
+          positions.
+REPLAY:   A readonly 8/3-vs-10/4 replay run TODAY on the live book (no real orders, through the order path)
+          OVERTURNED the slot-raise hypothesis:
+          - 10/4 deploys only ~$427 MORE — CVX ~$169 + ZM ~$258 — barely denting ~$3.9k idle cash.
+          - The marginal slot admits a LOW-CONVICTION name (ZM, conv 0.36) → confirms Codex's "admits
+            lower-quality marginal names" concern with real evidence.
+          - The genuinely better high-price names AVGO ($373) / BLK ($950) / GS ($1022) were SELECTED but
+            bought 0 shares: each had a Kelly target ~$400 (~4%) SMALLER THAN ONE WHOLE SHARE → whole-share
+            rounding floored them to 0. The binding constraint is ROUNDING on high-price names, NOT slots.
+          - This contradicts the earlier DERIVED counterfactual (which guessed 10/4 adds AVGO ~$1,227); the
+            derived arithmetic missed the rounding interaction — exactly the risk Codex flagged for a
+            non-execution counterfactual.
+LEVER:    FRACTIONAL SHARES (primary): notional/fractional sizing lets AVGO/BLK/GS fill at their small ~$400
+          targets instead of rounding to 0, deploying cash into the BETTER names. MIN-CONVICTION FLOOR
+          (optional): so ZM-class names don't fill slots just because they're cheap enough to round to a
+          whole share. SLOT COUNT is secondary — re-measure slot pressure only AFTER fractional shares.
+CODEX:    Took OPTION 1 of Codex's two clean shapes (proposal-only: revert active/golden, keep design +
+          progress docs + rollback/promote criteria). Option 2 (keep 10/4 + attach replay) was attempted —
+          the replay we ran for it changed the conclusion, so we keep config at 8/3. Lambda context retained:
+          raising slots is the same FAMILY as the disabled qp_cash_drag_lambda=0; fractional shares deploys
+          cash into the good names without re-enabling cash-drag pressure on a suspect ranking.
+ROLLBACK: The pre-registered slot-raise rollback/promote criteria are retained in the design doc as the bar
+          any FUTURE slot change must clear (after fractional shares lands) — NOT active here (no config
+          change). Note one REVERT condition (>40% of marginal admits round to 0 sh) already trips today
+          (AVGO/BLK/GS → 0), which is why slot-raise fails and fractional shares is needed first.
+TESTS:    Renamed/updated `test_cash_drag_slot_counts_stay_at_production_8_3` — now pins 8/3 in both active
+          and golden (was 10/4), asserts active==golden, re-asserts untouched risk knobs. Full suite green:
+          27 passed. System python is 3.9 and lacks deps; verified in a throwaway venv (pydantic<3/numpy/
+          pandas/pyarrow/scipy/statsmodels/arch + eval_type_backport) with PYTHONPATH=src:../renquant-common/
+          src. CI uses 3.10 natively. Config diff vs main verified EMPTY.
+NEXT:     Engineering: add fractional/notional order support (broker/adapter) so high-price small-target
+          names fill; optionally add a min-conviction floor on new admits. Re-measure cash drag after, and
+          only then revisit slot count if still bottlenecked.
