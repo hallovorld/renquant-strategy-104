@@ -639,7 +639,12 @@
   "_settlement_reason_2026_05_24": "US equities moved to T+1 settlement on 2024-05-28 under SEC Rule 15c6-1 amendments. Sim uses Alpaca-like non-marginable buying power so executed sell proceeds can fund buys without using 2x/4x margin buying power; set buying_power_mode=settled_cash for cash-account stress tests.",
   "enabled": true,
   "t2_settlement_days": 1,
-  "buying_power_mode": "non_marginable_buying_power"
+  "buying_power_mode": "non_marginable_buying_power",
+  "fractional_shares": {
+   "_provenance": "2026-06-29 cash-drag follow-up to PR #35 (slot-raise). Measured bottleneck: high-priced names (AVGO ~$373, BLK ~$950, GS ~$1022) have a small Kelly target (~4% / ~$400) that buys < 1 whole share, so renquant-pipeline compute_position_size rounds to 0 and the order is skipped — the raised slot's cash cannot deploy. enabled=true sizes the capped target as a FLOAT quantity (renquant-pipeline #35) and the live Alpaca broker submits it for fractionable symbols (renquant-execution fractionable guard floors non-fractionable names to whole shares). This ONLY removes the whole-share rounding skip; it does NOT change name selection, per-name target fraction, caps, or signal quality. min_notional skips sub-$1 dust orders.",
+   "enabled": true,
+   "min_notional": 1.0
+  }
  },
  "tax": {
   "_cash_debit_mode_reason": "Sim/live parity: broker cash is not reduced by estimated capital-gains tax at each sell. Keep per-trade tax estimates for audit and annual-net performance reporting, but do not let estimated tax cash drag drive portfolio decisions.",

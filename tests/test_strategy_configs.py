@@ -98,6 +98,35 @@ def test_cash_drag_slot_counts_stay_at_production_8_3() -> None:
     assert active["max_positions_per_sector"] == 6
 
 
+def test_fractional_shares_enabled_and_pinned() -> None:
+    """Pin the fractional-shares flag — the REAL lever for the 2026-06-29
+    cash-drag bottleneck (follow-up to PR #35). High-priced names
+    (AVGO/BLK/GS) are selected but skipped by whole-share rounding because
+    their Kelly targets (~$400, ~4%) are smaller than one share. With
+    execution.fractional_shares.enabled the pipeline sizes the capped target
+    as a FLOAT quantity (renquant-pipeline #35) and the live Alpaca broker
+    submits it for fractionable symbols (renquant-execution fractionable
+    guard). This ONLY removes the rounding skip — it does NOT change name
+    selection, the per-name target fraction, caps, or signal quality.
+    Active and golden MUST agree for the CI semantic-match contract."""
+    active = _load("strategy_config.json")
+    golden = _load("strategy_config.golden.json")
+
+    for name, cfg in (("active", active), ("golden", golden)):
+        frac = cfg["execution"]["fractional_shares"]
+        assert frac["enabled"] is True, f"{name}: fractional_shares must be enabled"
+        assert frac["min_notional"] == 1.0, f"{name}: min_notional must stay $1.0"
+
+    assert (
+        active["execution"]["fractional_shares"]["enabled"]
+        == golden["execution"]["fractional_shares"]["enabled"]
+    )
+    assert (
+        active["execution"]["fractional_shares"]["min_notional"]
+        == golden["execution"]["fractional_shares"]["min_notional"]
+    )
+
+
 def test_conviction_gate_demean_is_off_and_mu_floor_pinned() -> None:
     """Pin the conviction-gate intent so it cannot silently drift (PR #34 /
     2026-06-29 emergency revert). demean_cross_sectional MUST be false in both
