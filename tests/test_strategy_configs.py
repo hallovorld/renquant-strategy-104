@@ -58,6 +58,40 @@ def test_active_and_golden_semantic_config_match() -> None:
     assert active_norm == golden_norm
 
 
+def test_cash_drag_slot_counts_are_pinned_and_active_matches_golden() -> None:
+    """Pin the 2026-06-29 cash-drag slot raise (proposal PR) so it cannot
+    silently drift. A real daily-full deployed only $827 of $8,730 buying power
+    (live book ~46% deployed) because two slot caps -- top-level
+    max_concurrent_positions and rotation.panel_buy_top_n -- bounded how many
+    small positions the book can hold, NOT the per-name risk caps. This raises
+    ONLY the slot counts (8->12, 3->5); per-name (max_concentration,
+    BULL_CALM max_position_pct) and per-sector caps and Kelly fractional are
+    deliberately unchanged. Active and golden must agree for the CI
+    semantic-match contract."""
+    active = _load("strategy_config.json")
+    golden = _load("strategy_config.golden.json")
+
+    assert active["max_concurrent_positions"] == 12
+    assert golden["max_concurrent_positions"] == 12
+    assert active["rotation"]["panel_buy_top_n"] == 5
+    assert golden["rotation"]["panel_buy_top_n"] == 5
+    assert (
+        active["max_concurrent_positions"]
+        == golden["max_concurrent_positions"]
+    )
+    assert (
+        active["rotation"]["panel_buy_top_n"]
+        == golden["rotation"]["panel_buy_top_n"]
+    )
+
+    # Per-name and per-sector risk and Kelly aggression are deliberately NOT
+    # touched by this change -- guard against an accidental risk relaxation.
+    assert active["ranking"]["kelly_sizing"]["fractional"] == 0.3
+    assert active["ranking"]["kelly_sizing"]["max_concentration"] == 0.12
+    assert active["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.12
+    assert active["max_positions_per_sector"] == 6
+
+
 def test_conviction_gate_demean_is_off_and_mu_floor_pinned() -> None:
     """Pin the conviction-gate intent so it cannot silently drift (PR #34 /
     2026-06-29 emergency revert). demean_cross_sectional MUST be false in both
