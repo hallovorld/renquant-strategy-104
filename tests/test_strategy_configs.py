@@ -58,6 +58,23 @@ def test_active_and_golden_semantic_config_match() -> None:
     assert active_norm == golden_norm
 
 
+def test_conviction_gate_demean_is_off_and_mu_floor_pinned() -> None:
+    """Pin the conviction-gate intent so it cannot silently drift (PR #34 /
+    2026-06-29 emergency revert). demean_cross_sectional MUST be false in both
+    active and golden — with demean ON the absolute mu_floor=0.03 is applied to a
+    relative (demeaned) quantity, which on the fresh fundamentals feed admitted
+    ZERO names (run 2026-06-29-live-5970796e: max mu 0.0505, xs_mean +0.0212, so
+    even the top name demeaned to 0.0293 < 0.03). mu_floor stays 0.03 on raw mu."""
+    for name in ("strategy_config.json", "strategy_config.golden.json"):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        gate = cfg["ranking"]["panel_scoring"]["conviction_gate"]
+        assert gate["enabled"] is True
+        assert gate["demean_cross_sectional"] is False, (
+            f"{name}: demean_cross_sectional must be false (emergency revert PR #34)"
+        )
+        assert gate["mu_floor"] == 0.03, f"{name}: mu_floor must stay 0.03"
+
+
 def test_sector_map_covers_active_watchlist() -> None:
     cfg = _load("strategy_config.json")
     sector_map = cfg.get("sector_map", {})
