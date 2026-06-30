@@ -58,6 +58,46 @@ def test_active_and_golden_semantic_config_match() -> None:
     assert active_norm == golden_norm
 
 
+def test_cash_drag_slot_counts_stay_at_production_8_3() -> None:
+    """Pin the production slot counts so the 2026-06-29 cash-drag analysis
+    (PR #35) stays PROPOSAL-ONLY and cannot silently raise live policy.
+
+    A real 2026-06-29 daily-full deployed only $827 of $8,730 buying power
+    (live book ~46% deployed) because two slot caps -- top-level
+    max_concurrent_positions and rotation.panel_buy_top_n -- bounded how many
+    small positions the book can hold. A readonly 8/3 vs 10/4 replay run today
+    on the live book showed the slot-raise is a WEAK fix: 10/4 deploys only
+    ~$427 more (CVX + ZM) while the genuinely better high-price names
+    (AVGO/BLK/GS) were selected but skipped by whole-share rounding because
+    their Kelly targets (~$400, ~4%) are smaller than one share. The real lever
+    is FRACTIONAL SHARES, not slot count, so active/golden stay at the
+    production 8/3 and this PR merges as the analysis record only. See
+    doc/design/2026-06-29-cash-drag-raise-slots.md. Active and golden must
+    agree for the CI semantic-match contract."""
+    active = _load("strategy_config.json")
+    golden = _load("strategy_config.golden.json")
+
+    assert active["max_concurrent_positions"] == 8
+    assert golden["max_concurrent_positions"] == 8
+    assert active["rotation"]["panel_buy_top_n"] == 3
+    assert golden["rotation"]["panel_buy_top_n"] == 3
+    assert (
+        active["max_concurrent_positions"]
+        == golden["max_concurrent_positions"]
+    )
+    assert (
+        active["rotation"]["panel_buy_top_n"]
+        == golden["rotation"]["panel_buy_top_n"]
+    )
+
+    # Per-name and per-sector risk and Kelly aggression are deliberately NOT
+    # touched -- guard against an accidental risk relaxation.
+    assert active["ranking"]["kelly_sizing"]["fractional"] == 0.3
+    assert active["ranking"]["kelly_sizing"]["max_concentration"] == 0.12
+    assert active["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.12
+    assert active["max_positions_per_sector"] == 6
+
+
 def test_conviction_gate_demean_is_off_and_mu_floor_pinned() -> None:
     """Pin the conviction-gate intent so it cannot silently drift (PR #34 /
     2026-06-29 emergency revert). demean_cross_sectional MUST be false in both
