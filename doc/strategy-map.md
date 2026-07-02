@@ -15,10 +15,11 @@ Book = β(FLOOR: parking sleeve + ops discipline)
      + EXEC (entry/exit implementation gain) − LEAK (process failures)
 ```
 
-Target G* (end-2028): total Sharpe ≥ 0.7 · net alpha ≥ 0 · max DD ≤ 15% · institutional
-process. Canonical: orchestrator `doc/design/2026-07-02-unified-107-master-plan.md` (§0
-state vector; re-measured monthly) and `doc/research/2026-07-02-ic-ceiling-institutional-
-gap-107-route.md` (bounds, gates, fallback ladder).
+Target G* (end-2028): Sharpe/alpha/drawdown/process bar, defined and re-measured monthly.
+Canonical: orchestrator `doc/design/2026-07-02-unified-107-master-plan.md` (§0 state vector)
+and `doc/research/2026-07-02-ic-ceiling-institutional-gap-107-route.md` (bounds, gates,
+fallback ladder) — do not restate the numeric bar here; it is monthly-re-measured and this
+doc does not track that cadence.
 
 ## 2. Measured state (WHERE to read it, not a copy)
 
@@ -33,19 +34,27 @@ intentionally carries no numbers.
 - **Live primary**: XGB `panel-ltr.alpha158_fund` (operator-directed 2026-06-23; no standing
   WF verdict — repair + first verdict tracked as D1). Shadow: HF PatchTST.
 - **Planned stack (pre-registered)**: orchestrator
-  `doc/design/2026-07-02-m-sig-signal-stack-spec.md` — C1 estimate-revision drift (PIT store
-  accruing since 2026-07-02), C2 quality composite (FMP annual, coverage-delta-gated), C3
-  regime-conditioned residual momentum, C4 trend-scanning label. Thresholds frozen there;
-  policy/threshold ADOPTION lands HERE (configs/) when a candidate clears its bar.
+  `doc/design/2026-07-02-m-sig-signal-stack-spec.md` (frozen r4) —
+  C1 estimate-revision drift: INFORMATIVE-ONLY monitoring, EXCLUDED from the C2/C3/C4 voting
+  family (cannot independently decide GO/KILL for the stack; PIT store accrual is bounded to
+  the same 2027-Q4 deadline as every other candidate, not indefinite);
+  C2 quality composite (FMP-full fundamentals) — PIT-admissible only via a genuine
+  `acceptedDate`/`filingDate` availability timestamp (SEC EDGAR-sourced via
+  `sec_fundamentals.py`'s `available_date` when FMP itself lacks filing timestamps);
+  an observation with neither field present is INADMISSIBLE, never proxy-backfilled;
+  C3 regime-conditioned residual momentum; C4 trend-scanning label.
+  Thresholds frozen there; policy/threshold ADOPTION lands HERE (configs/) when a candidate
+  clears its bar.
 - **Closed (do not re-pitch)**: raw momentum, fundmom, label neutralization, multi-horizon
   sleeves, insider, macro frames — see orchestrator/umbrella failed-experiments records.
 
 ## 4. Policy knobs THIS repo owns (the #210 ownership split)
 
-`configs/strategy_config.json`: conviction floor (mu_floor 0.03 — uncertainty-haircut
-design M3 pending), `panel_buy_top_n` (3; A-2 widening deferred behind D1-or-M3),
-`qp_cash_drag_lambda` (0; A-1 confirmed a production no-op mechanically — #240),
-regime params (BULL_CALM cap 0.12, reserves), `model_staleness_days`, wash-sale/anti-churn.
+`configs/strategy_config.json` (values live in the config, not restated here — see keys):
+`mu_floor` (conviction floor; uncertainty-haircut design M3 pending), `panel_buy_top_n`
+(A-2 widening deferred behind D1-or-M3), `qp_cash_drag_lambda` (A-1 confirmed a production
+no-op mechanically — orchestrator #240), regime params (`BULL_CALM` cap, reserves),
+`model_staleness_days`, wash-sale/anti-churn.
 Sleeve policy (β-budgeted SPY/SGOV split formula) adopts here when S7 lands — decision
 memo: orchestrator `doc/research/2026-07-02-rs1-parking-sleeve.md`.
 
