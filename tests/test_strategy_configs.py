@@ -378,6 +378,41 @@ def test_bear_defensive_sleeve_is_explicit_and_default_off() -> None:
         assert cfg["defensive_tickers"]
 
 
+def test_parking_sleeve_keys_are_explicit_inert_and_shadow_only() -> None:
+    """S7 parking-sleeve config companion (renquant-pipeline #157, RS-1 memo):
+    the keys exist so the sleeve contract is declared in policy rather than
+    living only in the pipeline's safe defaults, but the sleeve stays INERT
+    (enabled=false) and SHADOW-only until the RS-1 §4 replay comparison and a
+    separately recorded capital authorization. The values below mirror the
+    pipeline defaults exactly, so defining them changes nothing. SGOV is
+    deliberately NOT a watchlist entry: sleeve-leg price coverage is an
+    umbrella follow-up (the daily price fetch is umbrella-owned, and #157's
+    shadow tolerates SGOV absence), and the alpha universe / cross-sectional
+    admission stats must never include a T-bill ETF."""
+    for name in (
+        "strategy_config.json",
+        "strategy_config.golden.json",
+        "strategy_config.shadow.json",
+    ):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        sleeve = cfg["sleeve"]
+        assert sleeve["enabled"] is False, f"{name}: parking sleeve must stay inert"
+        assert sleeve["mode"] == "shadow", f"{name}: only shadow mode is implemented"
+        assert sleeve["spy_symbol"] == "SPY"
+        assert sleeve["sgov_symbol"] == "SGOV"
+        assert sleeve["reserve_pv_pct"] == 0.05
+        assert sleeve["beta_max"] == 0.6
+        assert sleeve["beta_pos"] == 1.0
+        assert sleeve["min_trade_notional"] == 50.0
+        assert sleeve["dd_budget_pct"] == 0.15
+        assert sleeve["log_path"] == "logs/parking_sleeve_shadow.jsonl"
+        assert "RS-1" in sleeve["_comment"], f"{name}: sleeve must cite RS-1 lineage"
+        # SPY leg is already priced via the watchlist; SGOV coverage is the
+        # umbrella follow-up, NOT an alpha-universe entry.
+        assert sleeve["spy_symbol"] in cfg["watchlist"]
+        assert sleeve["sgov_symbol"] not in cfg["watchlist"]
+
+
 def test_strategy_repo_has_no_generated_experiment_configs() -> None:
     generated = sorted(
         p.name for p in CONFIG_DIR.glob("strategy_config.*.json")
