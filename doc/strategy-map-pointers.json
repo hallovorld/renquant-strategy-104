@@ -1,0 +1,100 @@
+{
+  "_comment": "Machine-readable pointer manifest for doc/strategy-map.md. Every backticked cross-repo path in the doc's prose must have an entry here (enforced by tests/test_strategy_map_pointers.py). 'ownership' names the repo that owns the canonical content. 'verified_main_shas' records the owning repo's main commit at last verification, so each pointer has an immutable permalink form: https://github.com/hallovorld/<repo>/blob/<sha>/<path>. The living pointer is always main HEAD; the SHA is an audit anchor, not a pin of the content. Integration-time re-validation against the canonical sibling checkouts consumes this file.",
+  "doc": "doc/strategy-map.md",
+  "verified": {
+    "date": "2026-07-02",
+    "main_shas": {
+      "renquant-orchestrator": "23dc9ff37ff1f1747e55c94363bc2794d167f482",
+      "RenQuant": "15031df9a8d19925ed674ec94e5258a15c74f427",
+      "renquant-base-data": "bd178dd5e666c000d36497381ae0314885268a8f"
+    }
+  },
+  "pointers": [
+    {
+      "repo": "renquant-orchestrator",
+      "path": "doc/design/2026-07-02-unified-107-master-plan.md",
+      "ownership": "renquant-orchestrator",
+      "role": "G* objective definition + state vector (doc §1)"
+    },
+    {
+      "repo": "renquant-orchestrator",
+      "path": "doc/research/2026-07-02-ic-ceiling-institutional-gap-107-route.md",
+      "ownership": "renquant-orchestrator",
+      "role": "IC bounds, gates, fallback ladder (doc §1)"
+    },
+    {
+      "repo": "renquant-orchestrator",
+      "path": "scripts/kpi_scorecard.py",
+      "ownership": "renquant-orchestrator",
+      "role": "weekly KPI scorecard generator (doc §2)"
+    },
+    {
+      "repo": "renquant-orchestrator",
+      "path": "doc/research/evidence/kpi_scorecards/",
+      "kind": "directory",
+      "ownership": "renquant-orchestrator",
+      "role": "scorecard JSON output directory - the measured-state truth (doc §2)"
+    },
+    {
+      "repo": "renquant-orchestrator",
+      "path": "doc/design/2026-07-02-m-sig-signal-stack-spec.md",
+      "ownership": "renquant-orchestrator",
+      "role": "M-SIG candidate registry: definitions, thresholds, deadlines, freeze status, settled-NULL rule (doc §3)"
+    },
+    {
+      "repo": "renquant-orchestrator",
+      "path": "doc/research/2026-07-02-rs1-parking-sleeve.md",
+      "ownership": "renquant-orchestrator",
+      "role": "parking-sleeve decision memo (doc §4)"
+    },
+    {
+      "repo": "RenQuant",
+      "path": "doc/arch/strategy-104-snapshot.md",
+      "ownership": "RenQuant",
+      "role": "GENERATED production snapshot - live primary/shadow scorer identity as current fact (doc §3)"
+    },
+    {
+      "repo": "RenQuant",
+      "path": "doc/arch/strategy-104.md",
+      "ownership": "RenQuant",
+      "role": "dated promotion narrative (doc STATUS + §3)"
+    },
+    {
+      "repo": "RenQuant",
+      "path": "doc/research/failed-experiments-log.md",
+      "ownership": "RenQuant",
+      "role": "failed-experiments registry - closed/settled-NULL roster owner (doc §3)"
+    },
+    {
+      "repo": "renquant-base-data",
+      "path": "src/renquant_base_data/sec_fundamentals.py",
+      "ownership": "renquant-base-data",
+      "role": "SEC EDGAR available_date source for C2 PIT admissibility fallback (doc §3)"
+    },
+    {
+      "repo": "renquant-strategy-104",
+      "path": "configs/strategy_config.json",
+      "ownership": "renquant-strategy-104",
+      "role": "the policy knobs this repo owns (doc §4)"
+    },
+    {
+      "repo": "renquant-strategy-104",
+      "path": "doc/strategy-map-pointers.json",
+      "ownership": "renquant-strategy-104",
+      "role": "this manifest (doc STATUS + §6)"
+    },
+    {
+      "repo": "renquant-strategy-104",
+      "path": "tests/test_strategy_map_pointers.py",
+      "ownership": "renquant-strategy-104",
+      "role": "offline link-check enforcing this manifest (doc §6)"
+    }
+  ],
+  "owned_config_keys": [
+    "ranking.panel_scoring.conviction_gate.mu_floor",
+    "rotation.panel_buy_top_n",
+    "rotation.joint_actions.qp_cash_drag_lambda",
+    "regime_params.BULL_CALM",
+    "model_staleness_days"
+  ]
+}
