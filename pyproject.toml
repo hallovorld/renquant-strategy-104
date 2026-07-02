@@ -9,7 +9,7 @@ description = "Policy/config repository for RenQuant 104."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "renquant-common>=0.7,<0.9",
+  "renquant-common>=0.7,<1.0",
 ]
 
 [tool.setuptools.packages.find]
