@@ -413,6 +413,65 @@ def test_parking_sleeve_keys_are_explicit_inert_and_shadow_only() -> None:
         assert sleeve["sgov_symbol"] not in cfg["watchlist"]
 
 
+def test_intraday_decisioning_keys_match_scheduler_defaults_and_stay_shadow_only() -> None:
+    """renquant105 Stage-1 SHADOW arming (RFC #208 §8.3/§10; consumer:
+    renquant-orchestrator #266 ``intraday_session_scheduler.load_intraday_config``;
+    #266 landing-checklist step 3, config half).
+
+    Every value below mirrors the scheduler's safe defaults exactly, so
+    defining the keys changes no scheduler behavior — the section's one real
+    bit is ``enabled=true``, which is ONE of three independent gates: the
+    scheduler is a SEPARATE launchd-run process (nothing in the daily run
+    invokes it) and also requires the env kill switch
+    ``RENQUANT_INTRADAY_DECISIONING`` truthy AND the kill-switch file absent,
+    both machine-side ask-first landing steps. Until that install, this
+    config is inert.
+
+    THE STAGE-2 BAR, MECHANICALLY: ``mode`` must be ``"shadow"``. #266
+    runtime-asserts never-submit on every tick and structurally downgrades
+    ``mode="live"`` to shadow (§9.3a) — but authorizing live is a policy
+    decision that must be VISIBLE, so this pin makes any flip to "live" fail
+    the suite until the Stage-2 authorization deliberately rewrites this
+    test alongside the config."""
+    for name in (
+        "strategy_config.json",
+        "strategy_config.golden.json",
+        "strategy_config.shadow.json",
+    ):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        intraday = cfg["intraday_decisioning"]
+        # The one real bit: config gate armed (inert without the machine-side
+        # env flag + launchd install; see the section _comment).
+        assert intraday["enabled"] is True, f"{name}: Stage-1 shadow arming"
+        # The Stage-2 authorization bar: shadow-only, pinned.
+        assert intraday["mode"] == "shadow", (
+            f"{name}: mode='live' is a Stage-2 authorization (RFC #208 §9.3a) "
+            "— rewrite this pin ONLY alongside that recorded decision"
+        )
+        # Scheduler defaults (§5/§11b), mirrored exactly.
+        assert intraday["tick_seconds"] == 720
+        assert intraday["entry_open_delay_seconds"] == 300
+        assert intraday["entry_close_cutoff_seconds"] == 1800
+        assert intraday["canary_allowlist"] == []
+        # null => the scheduler's default kill-switch path
+        # (<data_root>/data/rq105/intraday_decisioning.KILL).
+        assert intraday["kill_switch_file"] is None
+        assert "#208" in intraday["_comment"], f"{name}: must cite RFC #208"
+        assert "#266" in intraday["_comment"], f"{name}: must cite orchestrator #266"
+        # No stray keys: the scheduler reads exactly this set (fail-closed on
+        # malformed values); a typo'd extra key would silently do nothing.
+        assert set(intraday) == {
+            "enabled",
+            "mode",
+            "tick_seconds",
+            "entry_open_delay_seconds",
+            "entry_close_cutoff_seconds",
+            "canary_allowlist",
+            "kill_switch_file",
+            "_comment",
+        }, f"{name}: unexpected intraday_decisioning keys"
+
+
 def test_strategy_repo_has_no_generated_experiment_configs() -> None:
     generated = sorted(
         p.name for p in CONFIG_DIR.glob("strategy_config.*.json")
