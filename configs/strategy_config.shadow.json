@@ -369,6 +369,19 @@
   "enabled": false,
   "_reason": "2026-06-07 Codex prep for native BEAR defensive sleeve task: explicit default-off switch so pipeline implementation can be deployed without changing production behavior before A/B validation."
  },
+ "sleeve": {
+  "enabled": false,
+  "mode": "shadow",
+  "spy_symbol": "SPY",
+  "sgov_symbol": "SGOV",
+  "reserve_pv_pct": 0.05,
+  "beta_max": 0.6,
+  "beta_pos": 1.0,
+  "min_trade_notional": 50.0,
+  "dd_budget_pct": 0.15,
+  "log_path": "logs/parking_sleeve_shadow.jsonl",
+  "_comment": "2026-07-02 S7 parking-sleeve config companion (renquant-pipeline #157 ParkingSleeveShadowTask). Lineage: RS-1 parking-sleeve decision memo r2 (renquant-orchestrator doc/research/2026-07-02-rs1-parking-sleeve.md) + 104 capability program §1.3 / P1-2 (doc/design/2026-07-02-104-capability-program.md). INERT: enabled=false keeps the task a byte-identical no-op; values here mirror the pipeline's safe defaults so defining the keys changes nothing. Flipping enabled=true starts SHADOW JSONL logging only (mode=live is reserved/unimplemented in #157 and falls back to shadow with a warning); real exposure additionally requires the RS-1 §4 pre-registered cash/SGOV/SPY replay comparison + a separately recorded capital authorization. beta_pos=1.0 is RS-1 §2's PROVISIONAL planning heuristic, not a measured risk budget. SGOV price coverage is an UMBRELLA follow-up (daily price fetch is umbrella-owned; shadow tolerates SGOV absence by logging qty=null per #157 deviation 3) — SGOV is deliberately NOT added to the watchlist so the alpha universe / cross-sectional admission stats never include a T-bill ETF. Mirrored into the readonly shadow config per the optional-section house pattern (bear_defensive_sleeve precedent)."
+ },
  "risk": {
   "require_sector_map_for_buys": true,
   "max_sells_per_bar": 2,
