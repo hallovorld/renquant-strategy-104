@@ -64,6 +64,41 @@ class TestParkingSleeveConfig:
         with pytest.raises(ValueError, match="reserve_pct"):
             ParkingSleeveConfig(reserve_pct=-0.01)
 
+    def test_live_spy_exposure_requires_gate_cleared(self):
+        with pytest.raises(ValueError, match="spy_arm_gate_cleared"):
+            ParkingSleeveConfig(enabled=True, mode="live", vehicle="SPY")
+
+    def test_live_spy_exposure_via_split_fractions_requires_gate_cleared(self):
+        # vehicle="split" with a nonzero spy_fraction is still SPY exposure —
+        # the guard must catch it via the resolved fraction, not just vehicle="SPY".
+        with pytest.raises(ValueError, match="spy_arm_gate_cleared"):
+            ParkingSleeveConfig(
+                enabled=True, mode="live",
+                spy_fraction=0.3, sgov_fraction=0.7,
+            )
+
+    def test_live_spy_exposure_allowed_with_gate_cleared(self):
+        cfg = ParkingSleeveConfig(
+            enabled=True, mode="live", vehicle="SPY",
+            spy_arm_gate_cleared=True,
+        )
+        assert cfg.spy_arm_gate_cleared is True
+
+    def test_live_sgov_only_not_blocked_by_spy_guard(self):
+        # SGOV-only live configs carry no SPY exposure — must not require the gate.
+        cfg = ParkingSleeveConfig(enabled=True, mode="live", vehicle="SGOV")
+        assert cfg.spy_arm_gate_cleared is False
+
+    def test_shadow_mode_spy_exposure_not_blocked_by_spy_guard(self):
+        # Shadow mode never places real orders — the gate only applies to live mode.
+        cfg = ParkingSleeveConfig(enabled=True, mode="shadow", vehicle="SPY")
+        assert cfg.spy_arm_gate_cleared is False
+
+    def test_disabled_live_spy_not_blocked_by_spy_guard(self):
+        # enabled=False never allocates — the gate only applies when actually enabled.
+        cfg = ParkingSleeveConfig(enabled=False, mode="live", vehicle="SPY")
+        assert cfg.spy_arm_gate_cleared is False
+
 
 # ── Allocation logic ──────────────────────────────────────────────────────
 
@@ -113,6 +148,7 @@ class TestComputeSleeveAllocation:
         cfg = ParkingSleeveConfig(
             enabled=True, mode="live",
             spy_fraction=0.3, sgov_fraction=0.7,
+            spy_arm_gate_cleared=True,
         )
         alloc = compute_sleeve_allocation(
             80000, 100000, "BULL_CALM", cfg,
@@ -122,6 +158,46 @@ class TestComputeSleeveAllocation:
         assert alloc.spy_shares >= 0
         assert alloc.sgov_shares > 0
         assert alloc.cash_remaining >= 0
+
+    def test_vehicle_spy_allocates_all_spy_regardless_of_fraction_fields(self):
+        # Regression: vehicle="SPY" with UNTOUCHED (default) fraction fields
+        # (spy_fraction=0.0, sgov_fraction=1.0) must still allocate all-SPY —
+        # previously this silently allocated zero SPY / all SGOV.
+        cfg = ParkingSleeveConfig(
+            enabled=True, mode="live", vehicle="SPY",
+            spy_arm_gate_cleared=True,
+        )
+        alloc = compute_sleeve_allocation(
+            50000, 100000, "BULL_CALM", cfg,
+            spy_price=550.0, sgov_price=100.0,
+        )
+        assert alloc.spy_shares > 0
+        assert alloc.sgov_shares == 0
+
+    def test_vehicle_sgov_allocates_all_sgov_regardless_of_fraction_fields(self):
+        cfg = ParkingSleeveConfig(
+            enabled=True, mode="live", vehicle="SGOV",
+            spy_fraction=1.0, sgov_fraction=0.0,
+        )
+        alloc = compute_sleeve_allocation(
+            50000, 100000, "BULL_CALM", cfg,
+            spy_price=550.0, sgov_price=100.0,
+        )
+        assert alloc.spy_shares == 0
+        assert alloc.sgov_shares > 0
+
+    def test_vehicle_split_uses_explicit_fraction_fields(self):
+        cfg = ParkingSleeveConfig(
+            enabled=True, mode="live", vehicle="split",
+            spy_fraction=0.3, sgov_fraction=0.7,
+            spy_arm_gate_cleared=True,
+        )
+        alloc = compute_sleeve_allocation(
+            80000, 100000, "BULL_CALM", cfg,
+            spy_price=550.0, sgov_price=100.0,
+        )
+        assert alloc.spy_shares > 0
+        assert alloc.sgov_shares > 0
 
     def test_max_sleeve_cap(self):
         cfg = ParkingSleeveConfig(
