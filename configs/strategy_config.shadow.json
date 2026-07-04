@@ -840,6 +840,10 @@
      ]
     }
    },
+   "fingerprint": {
+    "accept_legacy_stamps": true,
+    "_comment": "2026-07-03 M6 stage-2 step 1 (renquant-orchestrator doc/design/2026-07-03-m6-stage2-fingerprint-migration.md sec.3 step 1; reader merged as renquant-pipeline #164 fingerprint_dispatch.accept_legacy_stamps, absent => true). Explicit true == the reader's default, so merging this changes nothing running today: it declares the migration window (version-dispatched verification accepts legacy versionless stamps alongside schema-v1) in policy so the future flip is a reviewable config PR instead of a code-default change. Flipping to false is the deliberate stage-2 STEP-4 migration act (v1-only: a versionless stamp then fails closed with the re-stamp-under-v1 remedy), gated on the step-3 census green window -- rewrite the pin in tests/test_strategy_configs.py only alongside that recorded decision."
+   },
    "quality_floor": {
     "enabled": true,
     "edge_sharpe_floor": {

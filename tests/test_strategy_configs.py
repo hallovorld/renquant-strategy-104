@@ -472,6 +472,53 @@ def test_intraday_decisioning_keys_match_scheduler_defaults_and_stay_shadow_only
         }, f"{name}: unexpected intraday_decisioning keys"
 
 
+def test_fingerprint_accept_legacy_stamps_is_explicit_and_true() -> None:
+    """M6 stage-2 step 1, config half (renquant-orchestrator
+    ``doc/design/2026-07-03-m6-stage2-fingerprint-migration.md`` §3 step 1;
+    reader: renquant-pipeline #164
+    ``fingerprint_dispatch.accept_legacy_stamps``, absent => true).
+
+    Explicit ``true`` equals the reader's default, so merging this changes
+    NOTHING running today. The point is declaring the migration window
+    (version-dispatched fingerprint verification accepts legacy versionless
+    stamps alongside schema-v1 at both fail-closed checks:
+    ``_assert_calibrator_matches_scorer`` and
+    ``_assert_calibrator_matches_entry``) in POLICY, so the future flip is a
+    reviewable strategy-config PR instead of a silent code-default change.
+
+    THE STEP-4 BAR, MECHANICALLY: flipping to ``false`` (v1-only — a
+    versionless stamp then fails closed with the re-stamp-under-v1 remedy) is
+    the deliberate stage-2 STEP-4 migration act, gated on the step-3 census
+    running green over the full observation window (design §3 steps 3-4).
+    This pin makes any flip fail this repo's suite until the step-4 decision
+    deliberately rewrites the test alongside the config — mirroring the
+    intraday ``mode == "shadow"`` pin (PR #41) and the sleeve inertness pin
+    (PR #39)."""
+    for name in (
+        "strategy_config.json",
+        "strategy_config.golden.json",
+        "strategy_config.shadow.json",
+    ):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        fingerprint = cfg["ranking"]["panel_scoring"]["fingerprint"]
+        assert fingerprint["accept_legacy_stamps"] is True, (
+            f"{name}: accept_legacy_stamps=false is the M6 stage-2 STEP-4 "
+            "migration act (v1-only verification; design §3 step 4) — rewrite "
+            "this pin ONLY alongside that recorded decision, after the step-3 "
+            "census is green"
+        )
+        comment = fingerprint["_comment"]
+        assert "#164" in comment, f"{name}: must cite pipeline #164 (the reader)"
+        assert "2026-07-03-m6-stage2-fingerprint-migration" in comment, (
+            f"{name}: must cite the M6 stage-2 design doc"
+        )
+        # Exactly the key #164's reader consumes (+ provenance): a typo'd
+        # extra key under this section would silently do nothing.
+        assert set(fingerprint) == {"accept_legacy_stamps", "_comment"}, (
+            f"{name}: unexpected fingerprint keys"
+        )
+
+
 def test_strategy_repo_has_no_generated_experiment_configs() -> None:
     generated = sorted(
         p.name for p in CONFIG_DIR.glob("strategy_config.*.json")
