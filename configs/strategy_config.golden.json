@@ -149,6 +149,9 @@
  ],
  "benchmark": "SPY",
  "data_src": "yfinance",
+ "decision_ledger": {
+  "enabled": true
+ },
  "initial_cash": 100000,
  "model_staleness_days": 60,
  "sharpe_floor": 1,
