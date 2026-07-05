@@ -290,6 +290,92 @@ class TestComputeSleeveAllocation:
         )
         assert 0 < alloc.sleeve_pct <= 0.50
 
+    # ── Cross-session exposure cap (codex round-1 finding on #44) ────────
+    #
+    # max_sleeve_pct is documented/tested as a cap on TOTAL sleeve exposure,
+    # but pre-fix, compute_sleeve_allocation had no input for sleeve value
+    # already held from prior sessions — it could only cap THIS call's new
+    # deployment, letting cumulative exposure drift past the configured cap
+    # once repeated across sessions. These tests prove the cap now binds on
+    # cumulative exposure, not just a single call in isolation.
+
+    def test_current_sleeve_value_reduces_headroom(self):
+        cfg = ParkingSleeveConfig(
+            enabled=True, max_sleeve_pct=0.20,
+            spy_fraction=0.0, sgov_fraction=1.0,
+        )
+        alloc = compute_sleeve_allocation(
+            50000, 100000, "BULL_CALM", cfg,
+            current_sleeve_value=15000.0,  # only 5000 of headroom left below the 20% cap
+            sgov_price=100.0,
+        )
+        headroom = 100000 * 0.20 - 15000.0
+        assert alloc.sgov_notional <= headroom + 1e-6
+
+    def test_cap_already_reached_blocks_further_deployment(self):
+        cfg = ParkingSleeveConfig(
+            enabled=True, max_sleeve_pct=0.20,
+            spy_fraction=0.0, sgov_fraction=1.0,
+        )
+        alloc = compute_sleeve_allocation(
+            50000, 100000, "BULL_CALM", cfg,
+            current_sleeve_value=20000.0,  # already at the 20% cap
+            sgov_price=100.0,
+        )
+        assert alloc.sgov_shares == 0
+        assert alloc.sweep_reason == "sleeve_cap_reached"
+
+    def test_sleeve_pct_reflects_total_not_just_this_session(self):
+        cfg = ParkingSleeveConfig(
+            enabled=True, max_sleeve_pct=0.50,
+            spy_fraction=0.0, sgov_fraction=1.0,
+        )
+        alloc = compute_sleeve_allocation(
+            10000, 100000, "BULL_CALM", cfg,
+            current_sleeve_value=20000.0,
+            sgov_price=100.0,
+        )
+        expected_total = (20000.0 + alloc.sgov_notional) / 100000
+        assert alloc.sleeve_pct == pytest.approx(expected_total)
+
+    def test_repeated_sessions_never_exceed_cumulative_cap(self):
+        """Simulate 3 sessions of fresh idle cash: the caller threads the
+        prior session's deployed notional forward as current_sleeve_value,
+        and cumulative sleeve exposure must never exceed the configured cap
+        even though each session sees a large, independent cash_available.
+        """
+        cfg = ParkingSleeveConfig(
+            enabled=True, max_sleeve_pct=0.20,
+            spy_fraction=0.0, sgov_fraction=1.0,
+        )
+        portfolio_value = 100000
+        cap = portfolio_value * cfg.max_sleeve_pct
+        current_sleeve_value = 0.0
+
+        alloc1 = compute_sleeve_allocation(
+            80000, portfolio_value, "BULL_CALM", cfg,
+            current_sleeve_value=current_sleeve_value, sgov_price=100.0,
+        )
+        current_sleeve_value += alloc1.sgov_notional
+        assert current_sleeve_value <= cap + 1e-6
+
+        alloc2 = compute_sleeve_allocation(
+            50000, portfolio_value, "BULL_CALM", cfg,
+            current_sleeve_value=current_sleeve_value, sgov_price=100.0,
+        )
+        current_sleeve_value += alloc2.sgov_notional
+        assert current_sleeve_value <= cap + 1e-6
+
+        alloc3 = compute_sleeve_allocation(
+            50000, portfolio_value, "BULL_CALM", cfg,
+            current_sleeve_value=current_sleeve_value, sgov_price=100.0,
+        )
+        current_sleeve_value += alloc3.sgov_notional
+        assert current_sleeve_value <= cap + 1e-6
+        # By session 3 the cap is exhausted — no further deployment allowed.
+        assert alloc3.sgov_shares == 0
+        assert alloc3.sweep_reason == "sleeve_cap_reached"
+
 
 # ── Shadow log ────────────────────────────────────────────────────────────
 
