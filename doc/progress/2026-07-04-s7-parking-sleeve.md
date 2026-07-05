@@ -64,3 +64,47 @@ pass; 1 pre-existing, unrelated failure elsewhere in the repo
 (`test_config_drift_cli_exposes_repo_root`, a subprocess/env artifact)
 reproduces identically against a clean `origin/main` checkout — not
 caused by this change.
+
+## Round 3 (review)
+
+Codex flagged one real design hole: `max_sleeve_pct` is documented and
+tested like a cap on total sleeve exposure, but `compute_sleeve_allocation`
+took only `cash_available`/`portfolio_value` — no input for sleeve value
+already held from prior sessions. The function could cap *this call's* new
+deployment but had no way to know (or bound) cumulative exposure once
+called repeatedly across sessions once execution wiring exists; the
+allocation primitive would hand later integration a false sense of
+protection.
+
+Fixed via Option 1 (extend the API, not narrow the docs): added
+`current_sleeve_value: float = 0.0` to `compute_sleeve_allocation()`,
+representing sleeve notional already held from prior sessions (0.0 =
+cold start, preserves existing single-call behavior). The cap now
+computes `headroom = max(0, portfolio_value * max_sleeve_pct -
+current_sleeve_value)` and limits new deployment to that headroom, so
+`max_sleeve_pct` binds on cumulative exposure, not a single call in
+isolation. A new `sweep_reason="sleeve_cap_reached"` distinguishes
+"the cross-session cap is already exhausted" from the pre-existing
+`"insufficient_deployable"` (low cash / reserve floor). `sleeve_pct` on
+the returned `SleeveAllocation` now reports TOTAL post-allocation sleeve
+fraction (`current_sleeve_value + this session's deployment`), not just
+this session's incremental share, matching the field's natural reading.
+
+4 new tests added (39 total), including a 3-session simulation
+(`test_repeated_sessions_never_exceed_cumulative_cap`) that threads each
+session's deployed notional forward as the next call's
+`current_sleeve_value` and asserts cumulative exposure never exceeds the
+configured cap even though each session independently sees a large
+`cash_available` — the exact repeated-session gap codex described.
+Verified all 4 new tests genuinely fail pre-fix
+(`TypeError: unexpected keyword argument 'current_sleeve_value'`) by
+stashing only the source change and running them against the prior
+signature — they cannot even be expressed without the fix, which is the
+literal shape of the finding. Full suite: 76 passed, 1 pre-existing
+skip (unrelated, same skip as round 2).
+
+Not addressed in this round (separate, later concern): `shadow_log_entry`
+does not yet log the `current_sleeve_value` a caller assumed — left out
+of scope since execution wiring (which will own tracking real sleeve
+state) does not exist yet; flag if this needs closing when that wiring
+lands.

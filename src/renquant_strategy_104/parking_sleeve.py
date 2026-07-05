@@ -112,6 +112,7 @@ def compute_sleeve_allocation(
     portfolio_value: float,
     regime: str,
     config: ParkingSleeveConfig,
+    current_sleeve_value: float = 0.0,
     spy_price: float = 0.0,
     sgov_price: float = 0.0,
 ) -> SleeveAllocation:
@@ -120,6 +121,16 @@ def compute_sleeve_allocation(
     Returns a SleeveAllocation that is always shadow=True unless config.mode
     is "live" AND config.enabled is True.  Even then, this function only
     COMPUTES — it never places orders.
+
+    ``current_sleeve_value`` is the notional value of SPY/SGOV sleeve
+    holdings already carried from prior sessions (0.0 for a cold start).
+    ``max_sleeve_pct`` caps TOTAL sleeve exposure: this session's new
+    deployment is limited to whatever headroom remains below
+    ``portfolio_value * max_sleeve_pct`` after ``current_sleeve_value``,
+    not capped in isolation. Callers that carry sleeve state across
+    sessions must pass the actual current holding value here, or the cap
+    silently degrades to a per-call incremental limit instead of the
+    cross-session exposure cap it is documented as.
     """
     is_shadow = not config.enabled or config.mode != "live"
 
@@ -148,13 +159,14 @@ def compute_sleeve_allocation(
     deployable = max(0.0, cash_available - reserve)
 
     max_sleeve = portfolio_value * config.max_sleeve_pct
-    deployable = min(deployable, max_sleeve)
+    headroom = max(0.0, max_sleeve - current_sleeve_value)
+    deployable = min(deployable, headroom)
 
     if deployable < 1.0:
         return SleeveAllocation(
             cash_remaining=cash_available,
             shadow=is_shadow,
-            sweep_reason="insufficient_deployable",
+            sweep_reason="sleeve_cap_reached" if headroom < 1.0 else "insufficient_deployable",
         )
 
     spy_fraction, sgov_fraction = resolve_vehicle_fractions(
@@ -177,7 +189,10 @@ def compute_sleeve_allocation(
 
     total_deployed = spy_notional + sgov_notional
     cash_remaining = cash_available - total_deployed
-    sleeve_pct = total_deployed / portfolio_value if portfolio_value > 0 else 0.0
+    sleeve_pct = (
+        (current_sleeve_value + total_deployed) / portfolio_value
+        if portfolio_value > 0 else 0.0
+    )
 
     return SleeveAllocation(
         spy_shares=spy_shares,
