@@ -666,7 +666,15 @@
   "_settlement_reason_2026_05_24": "US equities moved to T+1 settlement on 2024-05-28 under SEC Rule 15c6-1 amendments. Sim uses Alpaca-like non-marginable buying power so executed sell proceeds can fund buys without using 2x/4x margin buying power; set buying_power_mode=settled_cash for cash-account stress tests.",
   "enabled": true,
   "t2_settlement_days": 1,
-  "buying_power_mode": "non_marginable_buying_power"
+  "buying_power_mode": "non_marginable_buying_power",
+  "fractional_shares": {
+   "_comment": "S-FRAC v2 stage-2 sizing contract (renquant-pipeline #153 / doc/design/2026-07-02-s-frac-fractional-v2.md / doc/design/2026-07-07-104-105-cash-drag-resolution.md): declare the fractional-sizing policy in strategy config instead of relying on pipeline code defaults, but keep it DEFAULT OFF until the active-path capability gate, broker guard, and sizing-fidelity evidence are all proven. While disabled, 104 stays on the safe whole-share + A-3 fallback path.",
+   "_provenance": "2026-07-07 cash-drag phase-1 follow-up: strategy-104 owns the operator-visible enablement bit and the sizing-policy defaults; execution owns broker validation, pipeline owns sizing math, orchestrator owns scorecard monitoring.",
+   "enabled": false,
+   "min_notional": 1.0,
+   "min_fractional_trade_notional": 25.0,
+   "non_fractionable_tickers": []
+  }
  },
  "tax": {
   "_cash_debit_mode_reason": "Sim/live parity: broker cash is not reduced by estimated capital-gains tax at each sell. Keep per-trade tax estimates for audit and annual-net performance reporting, but do not let estimated tax cash drag drive portfolio decisions.",
