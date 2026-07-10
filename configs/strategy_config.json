@@ -666,6 +666,21 @@
   "one_share_floor_enabled": false,
   "_comment": "2026-07-09 P1 PREPARE step (renquant-pipeline doc/2026-07-02-one-share-floor-initiation.md, 3 codex review rounds, 20/20 tests). Consumer: renquant-pipeline task_selection.py SizeAndEmitTask (ctx.config.get('sizing').get('one_share_floor_enabled')). When true, a candidate that zeroes out ONLY because of whole-share rounding rounds UP to 1 share iff (a) 1 share <= regime max_position_pct * PV and (b) 1 share <= investable headroom. Default false = byte-identical to pre-PR. Enablement requires RS-2 preregistered shadow gate (orchestrator doc/research/2026-07-02-rs2-lane-a-timing.md §A-3) — measured 07-02 impact: BLK $995 + AVGO $360 = $1,355 additional deployment, cash 65%→52%."
  },
+ "deployment_governor": {
+  "enabled": false,
+  "e_ceil_by_regime": {
+   "BULL_CALM": 0.95,
+   "BULL_VOLATILE": 0.7,
+   "CHOPPY": 0.6,
+   "BEAR": 0.35
+  },
+  "hysteresis_band": 0.05,
+  "kelly_fraction": 0.3,
+  "mu_shrinkage": 0.0,
+  "top_k": 8,
+  "max_step_per_session": 0.15,
+  "_comment": "2026-07-09 D5 PREPARE per orchestrator RFC #443 (Deployment Governor top-down sizing architecture). Consumer: renquant-pipeline deployment_governor reader (parallel PR; the reader defaults enabled=false, so this block is INERT — byte-identical behavior — until that code merges AND the pin bumps). All numeric values are PLACEHOLDERS pending nested-selection tuning on the frozen tuning subset (prereg protocol D6) — they must NOT be treated as calibrated. Production enablement requires the D6 preregistered replay gate + S2 canary + recorded operator sign-off. Golden kept in lockstep per the active==golden semantic-match contract; shadow arms enabled=true mirroring the one_share_floor S1 pattern."
+ },
  "execution": {
   "_settlement_reason_2026_05_24": "US equities moved to T+1 settlement on 2024-05-28 under SEC Rule 15c6-1 amendments. Sim uses Alpaca-like non-marginable buying power so executed sell proceeds can fund buys without using 2x/4x margin buying power; set buying_power_mode=settled_cash for cash-account stress tests.",
   "enabled": true,
