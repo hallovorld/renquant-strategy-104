@@ -1,7 +1,24 @@
-# D6-§2a two-arm shadow A/B — config-only treatment PR (the #52 successor)
+# D6-§2a two-arm shadow A/B — config-only treatment PR (the #52 successor)   (PR #53)
 
-**Date**: 2026-07-10
-**Status**: Config-only. Nothing armed; zero live behavior change.
+STATUS:    delivered
+WHAT:      Adds the two D6-§2a shadow-arm configs (`shadow.json` treatment,
+           new `shadow_b.json` control), differing in exactly one
+           functional key (`buy_floor_std_mult`), pinned three ways
+           (line/tree/byte). Config-only — no arming, no scheduling,
+           nothing on the live book.
+WHY/DIR:   The #52 successor Codex prescribed: protocol to orchestrator
+           first (done, #443 merged), then the strategy config treatment
+           alone. Binding contract is orchestrator main's merged
+           `doc/design/2026-07-09-governor-prereg-replay-protocol.md` §2a
+           @ `8981edfa2a2ef71f538bac5b965bc389f21a9eb7` — this repo only
+           materializes it.
+EVIDENCE:  n/a (config/test-only change, not a model/data claim — see
+           "Contract robustness" below for the pin-test evidence)
+NEXT:      P-1 (renquant-execution readonly-broker parameterization,
+           merged) and P-2 (orchestrator#451 two-arm runner, still needs
+           its decision-snapshot digest / freeze-payload / config-diff-
+           assertion / umbrella-dependency fixes) before the experiment
+           can start.
 
 ## Bottom line
 
