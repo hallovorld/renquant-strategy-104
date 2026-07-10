@@ -693,6 +693,12 @@
    "min_notional": 1.0,
    "min_fractional_trade_notional": 25.0,
    "non_fractionable_tickers": []
+  },
+  "software_stops": {
+   "enabled": false,
+   "registry_path": "data/rq105/software_stops.json",
+   "max_staleness_minutes": 30.0,
+   "_comment": "2026-07-09 S-FRAC v2 stage-3 PREPARE per D7 (orchestrator #444). Consumer = renquant-pipeline software_stops.SoftwareStopRegistry.from_config, which reads exactly execution.software_stops.{enabled, registry_path, max_staleness_minutes}; its is_armed() is the probe commit_contract.software_stops_armed calls. INERT while enabled=false: from_config returns None, the layer does not exist, stage-0 semantics untouched. registry_path and max_staleness_minutes mirror the reader defaults exactly (DEFAULT_REGISTRY_PATH / DEFAULT_MAX_STALENESS_MINUTES), so declaring them changes nothing. enabled=false in ALL THREE configs including shadow. Arming = separate future PR gated on the stage-3 shadow packet + pager SLA demonstration + operator sign-off of the machine-death risk assumption."
   }
  },
  "tax": {
