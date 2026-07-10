@@ -270,6 +270,48 @@ def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
     assert any("regime_admission" in t for t in manifest["override_withdrawal_trigger"])
 
 
+def test_admission_breadth_shadow_ab_treatment_and_prod_baseline_pinned() -> None:
+    """Preregistered admission-breadth shadow A/B
+    (doc/design/2026-07-10-admission-breadth-shadow-ab.md; orchestrator #443
+    D6 protocol §2 Phase-2 amendment — veto arms moved to live shadow because
+    replay bars lack pre-veto candidates; successor to CLOSED #47 with its
+    review blockers fixed).
+
+    BASELINE arm: production AND golden stay at adaptive_mean_std with
+    buy_floor_std_mult == 1.0. Flipping production to 0.5 is the LIVE
+    ENABLEMENT act — a live-book behavior change requiring >= 10 future-only
+    shadow sessions, the marginal-entrant quality bar, a recommendation memo,
+    and its own codex-reviewed PR (design doc §9). Rewrite this pin ONLY
+    alongside that recorded decision (house pattern: intraday mode pin,
+    fingerprint pin, sleeve pin).
+
+    TREATMENT arm: the shadow config carries adaptive_mean_std with
+    buy_floor_std_mult == 0.5. Both keys moved together deliberately: under
+    the superseded adaptive_quantile mode the std-mult was dead config, and a
+    dead-config flip would be a deployed-but-dark non-experiment. Shadow runs
+    the full funnel on isolated alpaca_shadow state; zero live orders."""
+    prod = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
+    shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
+
+    for name, cfg in (("strategy_config.json", prod), ("strategy_config.golden.json", golden)):
+        panel = cfg["ranking"]["panel_scoring"]
+        assert panel["buy_floor"] == "adaptive_mean_std", name
+        assert panel["buy_floor_std_mult"] == 1, (
+            f"{name}: production/golden buy_floor_std_mult must stay 1.0 — "
+            "0.5 in production is the live enablement decision (separate "
+            "gated PR after the shadow A/B verdict memo, design doc §9)"
+        )
+
+    shadow_panel = shadow["ranking"]["panel_scoring"]
+    assert shadow_panel["buy_floor"] == "adaptive_mean_std"
+    assert shadow_panel["buy_floor_std_mult"] == 0.5
+    reason = shadow_panel["_buy_floor_reason"]
+    assert "2026-07-10-admission-breadth-shadow-ab" in reason
+    assert "alpaca_shadow" in reason
+    assert "NOT a calibrated optimum" in reason
+
+
 def test_execution_contract_is_explicit() -> None:
     cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
 
