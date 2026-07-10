@@ -280,6 +280,41 @@ def test_execution_contract_is_explicit() -> None:
     assert cfg["execution"]["buying_power_mode"] == "non_marginable_buying_power"
 
 
+def test_fractional_shares_contract_is_explicit_and_default_off() -> None:
+    """S-FRAC v2 stage-2 config companion (renquant-pipeline #153; cash-drag
+    phase-1 order in doc/design/2026-07-07-104-105-cash-drag-resolution.md).
+
+    The block exists so fractional-sizing policy is declared in strategy
+    config rather than living only in pipeline defaults, but it stays inert
+    until the active-path capability gate, broker guard, and sizing-fidelity
+    evidence are all proven. While disabled, 104 remains on the safe
+    whole-share + A-3 fallback path."""
+    for name in (
+        "strategy_config.json",
+        "strategy_config.golden.json",
+        "strategy_config.shadow.json",
+    ):
+        cfg = load_strategy_config(CONFIG_DIR / name)
+        frac = cfg["execution"]["fractional_shares"]
+        assert frac["enabled"] is False, f"{name}: fractional sizing must stay default-OFF"
+        assert frac["min_notional"] == 1.0
+        assert frac["min_fractional_trade_notional"] == 25.0
+        assert frac["non_fractionable_tickers"] == []
+        assert "#153" in frac["_comment"], f"{name}: must cite renquant-pipeline #153"
+        assert "sizing-fidelity evidence" in frac["_comment"], (
+            f"{name}: enablement bar must be explained"
+        )
+        assert "2026-07-07 cash-drag phase-1" in frac["_provenance"]
+        assert set(frac) == {
+            "enabled",
+            "min_notional",
+            "min_fractional_trade_notional",
+            "non_fractionable_tickers",
+            "_comment",
+            "_provenance",
+        }, f"{name}: unexpected fractional_shares keys"
+
+
 def test_qp_cap_compliance_sells_are_enabled_without_relaxing_c2() -> None:
     for name in (
         "strategy_config.json",
