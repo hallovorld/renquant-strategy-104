@@ -16,7 +16,7 @@ preregistered shadow A/B protocol per RS-2.
 
 ## Context
 
-VetoWeakBuys adaptive floor was set for XGB-era score distributions. PatchTST's
-compressed [0.45, 0.65] range makes mean+1σ≈0.575 too aggressive — it rejects
-candidates with positive calibrated expected returns. See orchestrator
+VetoWeakBuys adaptive floor with `std_mult=1.0` is too aggressive for the XGB
+panel scorer's calibrated [0.45, 0.65] range — mean+1σ≈0.575 rejects candidates
+with positive calibrated expected returns. See orchestrator
 `doc/research/2026-07-09-cash-drag-binding-constraints-update.md` (PR #442).

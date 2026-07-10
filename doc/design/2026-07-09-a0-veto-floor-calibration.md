@@ -1,4 +1,4 @@
-# Design: A-0 VetoWeakBuys floor calibration for PatchTST
+# Design: A-0 VetoWeakBuys floor calibration
 
 STATUS: design / RFC  
 DATE: 2026-07-09  
@@ -11,9 +11,8 @@ cross-sectional calibrated `rank_score` distribution. With `std_mult=1.0`, the f
 sits at ~0.54-0.58 daily and kills **80% of scored candidates** (66/83 on 07-02,
 55/73 on 06-24, 58/76 on 06-25).
 
-This threshold was calibrated for XGB-era scores with wider dispersion. PatchTST's
-calibrated rank_score distribution clusters in [0.45, 0.65] — much narrower. The 1σ
-threshold mechanically filters the MIDDLE of the distribution, not just noise.
+The XGB panel scorer's calibrated rank_score distribution clusters in [0.45, 0.65].
+The 1σ threshold mechanically filters the MIDDLE of the distribution, not just noise.
 
 ## 2. Evidence
 
@@ -30,9 +29,9 @@ threshold mechanically filters the MIDDLE of the distribution, not just noise.
 | 07-07 | 33 | 5 | 85% | 0.554 |
 | **avg** | **67** | **14** | **80%** | **0.562** |
 
-### 2.2 Score distribution (PatchTST vs gate)
+### 2.2 Score distribution (XGB panel scorer vs gate)
 
-PatchTST calibrated rank_score on 07-02 (83 candidates):
+XGB calibrated rank_score on 07-02 (83 candidates):
 - Mean: ~0.50
 - Std: ~0.07
 - Floor at mean+1σ: 0.575
@@ -47,8 +46,7 @@ that scores below mean+kσ are noise. For a normally distributed signal:
 - k=1.0: admits top 16% (one-tailed)
 - k=0.5: admits top 31%
 
-With PatchTST's compressed distribution, the ABSOLUTE quality represented by 0.55 is
-different from what 0.55 meant under XGB. The calibrator maps these to ERs; a
+With the XGB scorer's compressed calibrated distribution, the calibrator maps these to ERs; a
 rank_score of 0.55 maps to ER≈+3% (positive, meaningful). The floor is rejecting
 candidates with positive expected returns.
 
