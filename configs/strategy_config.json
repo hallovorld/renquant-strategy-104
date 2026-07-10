@@ -662,6 +662,10 @@
   "telecom": "XLC"
  },
  "max_positions_per_sector": 6,
+ "sizing": {
+  "one_share_floor_enabled": false,
+  "_comment": "2026-07-09 P1 PREPARE step (renquant-pipeline doc/2026-07-02-one-share-floor-initiation.md, 3 codex review rounds, 20/20 tests). Consumer: renquant-pipeline task_selection.py SizeAndEmitTask (ctx.config.get('sizing').get('one_share_floor_enabled')). When true, a candidate that zeroes out ONLY because of whole-share rounding rounds UP to 1 share iff (a) 1 share <= regime max_position_pct * PV and (b) 1 share <= investable headroom. Default false = byte-identical to pre-PR. Enablement requires RS-2 preregistered shadow gate (orchestrator doc/research/2026-07-02-rs2-lane-a-timing.md §A-3) — measured 07-02 impact: BLK $995 + AVGO $360 = $1,355 additional deployment, cash 65%→52%."
+ },
  "execution": {
   "_settlement_reason_2026_05_24": "US equities moved to T+1 settlement on 2024-05-28 under SEC Rule 15c6-1 amendments. Sim uses Alpaca-like non-marginable buying power so executed sell proceeds can fund buys without using 2x/4x margin buying power; set buying_power_mode=settled_cash for cash-account stress tests.",
   "enabled": true,
