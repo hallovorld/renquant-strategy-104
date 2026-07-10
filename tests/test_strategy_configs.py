@@ -22,6 +22,7 @@ def test_required_policy_configs_exist_and_parse() -> None:
         "strategy_config.json",
         "strategy_config.golden.json",
         "strategy_config.shadow.json",
+        "strategy_config.shadow_a.json",
         "strategy_config.shadow_b.json",
         "xgb_prod_artifact_manifest.json",
     ):
@@ -560,8 +561,15 @@ def test_shadow_ab_arm_configs_carry_frozen_2a_values() -> None:
     #443 merged; §2a, 'Corrected design — two simultaneous isolated shadow
     arms, identical except the floor').
 
-    Arm S-0.5 (TREATMENT)  = strategy_config.shadow.json,   tag alpaca_shadow_a
+    Arm S-0.5 (TREATMENT)  = strategy_config.shadow_a.json, tag alpaca_shadow_a
     Arm S-1.0 (CONTROL)    = strategy_config.shadow_b.json, tag alpaca_shadow_b
+
+    Both arms live in DEDICATED files, never the legacy strategy_config.
+    shadow.json (Step-4 ops shadow, broker tag alpaca_shadow) — a Codex
+    review on #53 caught an earlier draft mutating shadow.json in place,
+    which would have silently re-armed the legacy single-arm shadow with
+    the treatment before P-2 isolates the two new arms. See
+    test_legacy_shadow_config_untouched_by_shadow_ab below.
 
     Both arms: scorer hf_patchtst, Kelly fractional 0.5 / max_concentration
     0.35, BULL_CALM max_position_pct 0.15, one_share_floor_enabled true,
@@ -573,10 +581,10 @@ def test_shadow_ab_arm_configs_carry_frozen_2a_values() -> None:
     NO 'live' section may appear in either arm. Rewrite these pins ONLY under
     a new protocol version: §2a's treatment-fingerprint drift rule VOIDS the
     running experiment if either arm's resolved config hash changes mid-run."""
-    arm_a = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
+    arm_a = load_strategy_config(CONFIG_DIR / "strategy_config.shadow_a.json")
     arm_b = load_strategy_config(CONFIG_DIR / "strategy_config.shadow_b.json")
 
-    for name, cfg in (("shadow", arm_a), ("shadow_b", arm_b)):
+    for name, cfg in (("shadow_a", arm_a), ("shadow_b", arm_b)):
         panel = cfg["ranking"]["panel_scoring"]
         assert panel["kind"] == "hf_patchtst", f"{name}: §2a frozen scorer"
         assert panel["buy_floor"] == "adaptive_mean_std", (
@@ -611,14 +619,14 @@ def test_shadow_ab_arm_configs_carry_frozen_2a_values() -> None:
 
 def test_shadow_ab_arms_differ_in_exactly_the_treatment_key() -> None:
     """§2a config-drift pin, enforced LITERALLY: shadow_b is 'a clone of
-    shadow.json differing in exactly ONE functional key (plus inert `_reason`
-    annotation strings)'. Three independent enforcements: (1) line-level —
-    the two files have identical line counts and differ on exactly the
-    buy_floor_std_mult line and the _arm annotation line; (2) tree-level —
-    the parsed-JSON diff is exactly those two dotted paths; (3) byte-level —
-    with those two paths removed, the canonical serializations are
-    byte-equal."""
-    a_text = (CONFIG_DIR / "strategy_config.shadow.json").read_text()
+    shadow_a.json differing in exactly ONE functional key (plus inert
+    `_reason` annotation strings)'. Three independent enforcements: (1)
+    line-level — the two files have identical line counts and differ on
+    exactly the buy_floor_std_mult line and the _arm annotation line; (2)
+    tree-level — the parsed-JSON diff is exactly those two dotted paths;
+    (3) byte-level — with those two paths removed, the canonical
+    serializations are byte-equal."""
+    a_text = (CONFIG_DIR / "strategy_config.shadow_a.json").read_text()
     b_text = (CONFIG_DIR / "strategy_config.shadow_b.json").read_text()
 
     # (1) line-level: same shape, exactly two differing lines, on known keys.
@@ -675,6 +683,40 @@ def test_shadow_ab_leaves_prod_and_golden_at_production_baseline() -> None:
         assert cfg["ranking"]["kelly_sizing"]["max_concentration"] == 0.12, name
         assert cfg["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.12, name
         assert cfg["sizing"]["one_share_floor_enabled"] is False, name
+
+
+def test_legacy_shadow_config_untouched_by_shadow_ab() -> None:
+    """Codex review on #53: an earlier draft of this PR mutated
+    strategy_config.shadow.json IN PLACE to the 0.5σ treatment values. That
+    file is the LEGACY Step-4 ops shadow config (broker tag alpaca_shadow,
+    still invoked daily by daily_104.sh independent of the D6-§2a
+    experiment). Mutating it would have silently re-armed the legacy
+    single-arm shadow with an uncontrolled treatment observation before
+    P-2 isolates the two new arms (alpaca_shadow_a/_b) — contaminating the
+    paired experiment. Pin the legacy file at its PRE-experiment values:
+    adaptive_quantile / std_mult 1 (the 2026-06-11 false-BEAR audit
+    values), with no _arm annotation and no reference to the D6-§2a
+    protocol anywhere in it. The two-arm experiment lives ENTIRELY in
+    strategy_config.shadow_a.json / strategy_config.shadow_b.json."""
+    legacy = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
+    panel = legacy["ranking"]["panel_scoring"]
+    assert panel["buy_floor"] == "adaptive_quantile", (
+        "legacy shadow.json must stay at its pre-#53 adaptive_quantile "
+        "value — the D6-§2a treatment must never leak into the legacy "
+        "Step-4 ops shadow path"
+    )
+    assert panel["buy_floor_std_mult"] == 1, (
+        "legacy shadow.json must stay at its pre-#53 std_mult=1 value"
+    )
+    assert "_arm" not in panel, (
+        "legacy shadow.json must carry no D6-§2a arm annotation — it is "
+        "not part of the two-arm experiment"
+    )
+    reason = panel.get("_buy_floor_reason", "")
+    assert SHADOW_AB_PROTOCOL_DOC not in reason, (
+        "legacy shadow.json must not cite the §2a protocol — it is not "
+        "one of the experiment's arms"
+    )
 
 
 def test_strategy_repo_has_no_generated_experiment_configs() -> None:
