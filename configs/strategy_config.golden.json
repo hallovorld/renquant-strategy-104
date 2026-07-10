@@ -685,7 +685,13 @@
   "_settlement_reason_2026_05_24": "US equities moved to T+1 settlement on 2024-05-28 under SEC Rule 15c6-1 amendments. Sim uses Alpaca-like non-marginable buying power so executed sell proceeds can fund buys without using 2x/4x margin buying power; set buying_power_mode=settled_cash for cash-account stress tests.",
   "enabled": true,
   "t2_settlement_days": 1,
-  "buying_power_mode": "non_marginable_buying_power"
+  "buying_power_mode": "non_marginable_buying_power",
+  "software_stops": {
+   "enabled": false,
+   "registry_path": "data/rq105/software_stops.json",
+   "max_staleness_minutes": 30.0,
+   "_comment": "2026-07-09 S-FRAC v2 stage-3 PREPARE per D7 (orchestrator #444). Consumer = renquant-pipeline software_stops.SoftwareStopRegistry.from_config, which reads exactly execution.software_stops.{enabled, registry_path, max_staleness_minutes}; its is_armed() is the probe commit_contract.software_stops_armed calls. INERT while enabled=false: from_config returns None, the layer does not exist, stage-0 semantics untouched. registry_path and max_staleness_minutes mirror the reader defaults exactly (DEFAULT_REGISTRY_PATH / DEFAULT_MAX_STALENESS_MINUTES), so declaring them changes nothing. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract. enabled=false in ALL THREE configs including shadow. Arming = separate future PR gated on the stage-3 shadow packet + pager SLA demonstration + operator sign-off of the machine-death risk assumption."
+  }
  },
  "tax": {
   "_cash_debit_mode_reason": "Sim/live parity: broker cash is not reduced by estimated capital-gains tax at each sell. Keep per-trade tax estimates for audit and annual-net performance reporting, but do not let estimated tax cash drag drive portfolio decisions.",
