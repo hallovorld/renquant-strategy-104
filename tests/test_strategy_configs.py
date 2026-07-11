@@ -296,7 +296,11 @@ def test_fractional_shares_contract_is_explicit_and_default_off() -> None:
     ):
         cfg = load_strategy_config(CONFIG_DIR / name)
         frac = cfg["execution"]["fractional_shares"]
-        assert frac["enabled"] is False, f"{name}: fractional sizing must stay default-OFF"
+        # 2026-07-10 operator enablement batch-2 (GOAL-6 recorded risk
+        # decision): fractional ON in prod+golden; shadow.json stays OFF
+        # (D6-§2a arm S-0.5 single-delta contract).
+        expected_frac = name != "strategy_config.shadow.json"
+        assert frac["enabled"] is expected_frac, f"{name}: fractional enablement contract 2026-07-10"
         assert frac["min_notional"] == 1.0
         assert frac["min_fractional_trade_notional"] == 25.0
         assert frac["non_fractionable_tickers"] == []
@@ -305,14 +309,18 @@ def test_fractional_shares_contract_is_explicit_and_default_off() -> None:
             f"{name}: enablement bar must be explained"
         )
         assert "2026-07-07 cash-drag phase-1" in frac["_provenance"]
-        assert set(frac) == {
+        expected_keys = {
             "enabled",
             "min_notional",
             "min_fractional_trade_notional",
             "non_fractionable_tickers",
             "_comment",
             "_provenance",
-        }, f"{name}: unexpected fractional_shares keys"
+        }
+        if expected_frac:
+            # batch-2 enablement annotation (operator directive record)
+            expected_keys.add("_enabled_20260710")
+        assert set(frac) == expected_keys, f"{name}: unexpected fractional_shares keys"
 
 
 def test_qp_cap_compliance_sells_are_enabled_without_relaxing_c2() -> None:
