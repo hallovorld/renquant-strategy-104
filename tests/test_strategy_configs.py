@@ -433,8 +433,16 @@ def test_parking_sleeve_keys_are_explicit_inert_and_shadow_only() -> None:
     ):
         cfg = load_strategy_config(CONFIG_DIR / name)
         sleeve = cfg["sleeve"]
-        assert sleeve["enabled"] is False, f"{name}: parking sleeve must stay inert"
-        assert sleeve["mode"] == "shadow", f"{name}: only shadow mode is implemented"
+        # 2026-07-10: SHADOW logging enabled in prod+golden (JSONL only — no
+        # orders, no capital movement; collects the RS-1 SS7 corpus that any
+        # future mode=live decision is gated on). shadow.json (arm S-0.5,
+        # single-delta contract) stays inert. mode=live remains gated on the
+        # RS-1 §4 replay comparison + recorded capital authorization.
+        expected_sleeve = name != "strategy_config.shadow.json"
+        assert sleeve["enabled"] is expected_sleeve, (
+            f"{name}: sleeve shadow-logging contract 2026-07-10"
+        )
+        assert sleeve["mode"] == "shadow", f"{name}: only shadow mode may be enabled"
         assert sleeve["spy_symbol"] == "SPY"
         assert sleeve["sgov_symbol"] == "SGOV"
         assert sleeve["reserve_pv_pct"] == 0.05
