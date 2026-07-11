@@ -697,11 +697,10 @@
    "non_fractionable_tickers": []
   },
   "software_stops": {
-   "enabled": true,
+   "enabled": false,
    "registry_path": "data/rq105/software_stops.json",
    "max_staleness_minutes": 30.0,
-   "_comment": "2026-07-09 S-FRAC v2 stage-3 PREPARE per D7 (orchestrator #444). Consumer = renquant-pipeline software_stops.SoftwareStopRegistry.from_config, which reads exactly execution.software_stops.{enabled, registry_path, max_staleness_minutes}; its is_armed() is the probe commit_contract.software_stops_armed calls. INERT while enabled=false: from_config returns None, the layer does not exist, stage-0 semantics untouched. registry_path and max_staleness_minutes mirror the reader defaults exactly (DEFAULT_REGISTRY_PATH / DEFAULT_MAX_STALENESS_MINUTES), so declaring them changes nothing. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract. enabled=false in ALL THREE configs including shadow. Arming = separate future PR gated on the stage-3 shadow packet + pager SLA demonstration + operator sign-off of the machine-death risk assumption.",
-   "_enabled_20260710": "ENABLED 2026-07-10 same operator directive \u2014 protective control (ratchet-only registry; arms loop-resident stop evaluation), prerequisite for fractional stage-3."
+   "_comment": "2026-07-09 S-FRAC v2 stage-3 PREPARE per D7 (orchestrator #444). Consumer = renquant-pipeline software_stops.SoftwareStopRegistry.from_config, which reads exactly execution.software_stops.{enabled, registry_path, max_staleness_minutes}; its is_armed() is the probe commit_contract.software_stops_armed calls. INERT while enabled=false: from_config returns None, the layer does not exist, stage-0 semantics untouched. registry_path and max_staleness_minutes mirror the reader defaults exactly (DEFAULT_REGISTRY_PATH / DEFAULT_MAX_STALENESS_MINUTES), so declaring them changes nothing. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract. enabled=false in ALL THREE configs including shadow. Arming = separate future PR gated on the stage-3 shadow packet + pager SLA demonstration + operator sign-off of the machine-death risk assumption."
   }
  },
  "tax": {
