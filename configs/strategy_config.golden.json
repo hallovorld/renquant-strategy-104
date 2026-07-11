@@ -664,8 +664,9 @@
  },
  "max_positions_per_sector": 6,
  "sizing": {
-  "one_share_floor_enabled": false,
-  "_comment": "2026-07-09 P1 PREPARE step (renquant-pipeline doc/2026-07-02-one-share-floor-initiation.md, 3 codex review rounds, 20/20 tests). Consumer: renquant-pipeline task_selection.py SizeAndEmitTask (ctx.config.get('sizing').get('one_share_floor_enabled')). When true, a candidate that zeroes out ONLY because of whole-share rounding rounds UP to 1 share iff (a) 1 share <= regime max_position_pct * PV and (b) 1 share <= investable headroom. Default false = byte-identical to pre-PR. Enablement requires RS-2 preregistered shadow gate (orchestrator doc/research/2026-07-02-rs2-lane-a-timing.md \u00a7A-3) \u2014 measured 07-02 impact: BLK $995 + AVGO $360 = $1,355 additional deployment, cash 65%\u219252%. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract."
+  "one_share_floor_enabled": true,
+  "_comment": "2026-07-09 P1 PREPARE step (renquant-pipeline doc/2026-07-02-one-share-floor-initiation.md, 3 codex review rounds, 20/20 tests). Consumer: renquant-pipeline task_selection.py SizeAndEmitTask (ctx.config.get('sizing').get('one_share_floor_enabled')). When true, a candidate that zeroes out ONLY because of whole-share rounding rounds UP to 1 share iff (a) 1 share <= regime max_position_pct * PV and (b) 1 share <= investable headroom. Default false = byte-identical to pre-PR. Enablement requires RS-2 preregistered shadow gate (orchestrator doc/research/2026-07-02-rs2-lane-a-timing.md \u00a7A-3) \u2014 measured 07-02 impact: BLK $995 + AVGO $360 = $1,355 additional deployment, cash 65%\u219252%. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract.",
+  "_enabled_20260710": "ENABLED 2026-07-10 by recorded operator directive (twice-stated: 'I don't want to wait, prepare everything, go live now') \u2014 operator risk decision superseding the RS-2 shadow-window process; enablement PR config/operator-enablement-batch-1; rollback = flip this boolean."
  },
  "deployment_governor": {
   "enabled": false,
@@ -696,10 +697,11 @@
    "non_fractionable_tickers": []
   },
   "software_stops": {
-   "enabled": false,
+   "enabled": true,
    "registry_path": "data/rq105/software_stops.json",
    "max_staleness_minutes": 30.0,
-   "_comment": "2026-07-09 S-FRAC v2 stage-3 PREPARE per D7 (orchestrator #444). Consumer = renquant-pipeline software_stops.SoftwareStopRegistry.from_config, which reads exactly execution.software_stops.{enabled, registry_path, max_staleness_minutes}; its is_armed() is the probe commit_contract.software_stops_armed calls. INERT while enabled=false: from_config returns None, the layer does not exist, stage-0 semantics untouched. registry_path and max_staleness_minutes mirror the reader defaults exactly (DEFAULT_REGISTRY_PATH / DEFAULT_MAX_STALENESS_MINUTES), so declaring them changes nothing. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract. enabled=false in ALL THREE configs including shadow. Arming = separate future PR gated on the stage-3 shadow packet + pager SLA demonstration + operator sign-off of the machine-death risk assumption."
+   "_comment": "2026-07-09 S-FRAC v2 stage-3 PREPARE per D7 (orchestrator #444). Consumer = renquant-pipeline software_stops.SoftwareStopRegistry.from_config, which reads exactly execution.software_stops.{enabled, registry_path, max_staleness_minutes}; its is_armed() is the probe commit_contract.software_stops_armed calls. INERT while enabled=false: from_config returns None, the layer does not exist, stage-0 semantics untouched. registry_path and max_staleness_minutes mirror the reader defaults exactly (DEFAULT_REGISTRY_PATH / DEFAULT_MAX_STALENESS_MINUTES), so declaring them changes nothing. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract. enabled=false in ALL THREE configs including shadow. Arming = separate future PR gated on the stage-3 shadow packet + pager SLA demonstration + operator sign-off of the machine-death risk assumption.",
+   "_enabled_20260710": "ENABLED 2026-07-10 same operator directive \u2014 protective control (ratchet-only registry; arms loop-resident stop evaluation), prerequisite for fractional stage-3."
   }
  },
  "tax": {
