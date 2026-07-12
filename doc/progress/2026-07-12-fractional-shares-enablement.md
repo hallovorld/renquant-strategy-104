@@ -17,10 +17,11 @@ strategy-104 PR #54 (2026-07-07 cash-drag phase-1).
 | Prerequisite | Owner | Status |
 |---|---|---|
 | Broker fractional contract (see §Broker below) | renquant-execution | Not implemented |
-| Broker-side GTC stop limitation documented and accepted | operator | Assumption only (2% PV bound not measured) |
+| Broker-side GTC stop limitation documented and accepted | operator | Assumption only |
 | Stage-3 shadow packet: fractional sizing in shadow mode with monitoring | orchestrator | Not started |
-| Software stops pager SLA demonstrated | orchestrator PR #481 | Dark template staged |
-| Dead-process exposure bound measured (see §Time-at-risk below) | orchestrator | Not measured |
+| Software stops pager SLA demonstrated | orchestrator PR #481 | Merged (dark template) |
+| Dead-process at-risk-notional bound measured (see §Dead-process below) | orchestrator | Not measured |
+| Fractional stop coverage invariant proven (see §Coverage below) | orchestrator + execution | Not implemented |
 | Explicit signed-off risk decision with evidence | operator | Pending above |
 
 ## Broker contract prerequisite
@@ -48,58 +49,111 @@ Before enablement, the broker adapter must demonstrate:
   object: the fill log with order IDs, quantities, prices, and
   rejection/error events.
 
+## Fractional stop coverage invariant
+
+`is_armed()` alone is insufficient — a parseable registry can be armed with
+zero entries, and a start-of-session check says nothing about fractional
+buys opened later in the session.
+
+**Coverage metric** (computed at every post-order and heartbeat boundary):
+
+```
+fractional_stop_coverage = registered_fresh_fractional_stop_notional
+                         / gross_fractional_position_notional
+```
+
+Where:
+- Numerator: sum of notional for fractional positions that have a
+  corresponding software-stop registry entry with `is_armed() == True`
+  AND staleness < `max_staleness_minutes`, reconciled against broker
+  holdings (not just the decision ledger).
+- Denominator: sum of notional for all fractional positions from the
+  broker portfolio snapshot.
+
+**Hard gates**:
+- A new fractional buy is blocked unless `fractional_stop_coverage == 1.0`
+  AFTER the hypothetical addition (i.e., the stop for the new position
+  must be registered before the buy order is submitted).
+- Any `fractional_stop_coverage < 1.0` at a heartbeat boundary → kill
+  trigger (disable fractional entries immediately, create immutable
+  integrity incident).
+- Unknown/uncovered fractional positions (in broker holdings but not in
+  the registry) → hard gate: no new fractional buys until reconciled.
+
 ## Monitoring contract (for future enablement)
 
-When enabled, the following metrics are tracked daily and persisted in the
-immutable daily run bundle (orchestrator scorecard integration required
-before enablement):
+When enabled, the following metrics are tracked daily. Ownership:
+**renquant-execution** owns normalized broker order/fill/reject events;
+**renquant-pipeline** owns fractional intent/decision facts from the
+decision ledger; **renquant-orchestrator** joins their immutable records
+into the daily run bundle and surfaces them in the scorecard.
 
-| Metric | Definition | Threshold |
-|---|---|---|
-| `fractional_order_count` | count of orders submitted with fractional quantity (qty has non-zero decimal part), per session | > 0 (liveness) |
-| `fractional_fill_rate` | filled fractional orders / submitted fractional orders, where terminal states are: filled, partially_filled (counted as filled), canceled, rejected, expired. Pending/new orders excluded from denominator. Evaluated over a rolling 5-session window. | > 95% over 5 sessions |
-| `fractional_notional_total` | sum of (fill_price × fill_qty) for all fractional fills in the session, from broker fill events. Currency: USD. Timestamp: fill event timestamp. | < 10% PV (PV from portfolio snapshot at session start) |
-| `non_fractionable_reject_count` | count of orders rejected specifically because the symbol is not fractionable (rejection reason code from broker adapter) | = 0 |
-| `software_stops_armed` | orchestrator scorecard: whether the software-stop registry exists, parses, and has `is_armed() == True` at session start | must be true |
-| `stop_staleness_minutes` | max age of the software-stop registry heartbeat at session start, from `registry.last_updated` vs current time | < max_staleness_minutes (config) |
+| Metric | Definition | Owner | Threshold |
+|---|---|---|---|
+| `fractional_order_count` | count of orders submitted with fractional quantity (qty has non-zero decimal part), per session | execution | > 0 (liveness) |
+| `fractional_fill_rate` | filled fractional orders / submitted fractional orders. Terminal states: filled, partially_filled (counted as filled), canceled, rejected, expired. Pending/new excluded from denominator. Rolling 5-session window. | execution | > 95% over 5 sessions |
+| `fractional_notional_total` | sum of (fill_price × fill_qty) for all fractional fills in the session. Source: broker fill events. Currency: USD. | execution | < 10% PV |
+| `non_fractionable_reject_count` | count of orders rejected with "not fractionable" reason code | execution | = 0 |
+| `fractional_stop_coverage` | see §Coverage above | orchestrator | = 1.0 |
+| `stop_staleness_minutes` | max heartbeat age across all fractional-position stops | orchestrator | < max_staleness_minutes |
 
-Metrics are produced by a pipeline task (new PR required) that reads the
-broker fill/order log and the decision ledger, and are consumed by the
-orchestrator's immutable daily run bundle. Missing or errored metrics for
-any counter in a session → that session excluded from threshold evaluation
-and flagged for investigation.
+### Missing/errored data policy
 
-## Time-at-risk measurement (dead-process exposure bound)
+**Safety-critical metrics** (`fractional_stop_coverage`, `stop_staleness_minutes`,
+`non_fractionable_reject_count`): missing or errored data is a **fail-closed
+event** — block new fractional entries for the next session and create an
+immutable integrity incident in the run bundle. These metrics cannot be
+excluded from evaluation because their absence is itself the safety failure
+the gate exists to detect.
 
-The static `software_stops_armed=true` flag does not establish a
-machine-death exposure bound. The following measurements are required
-before enablement:
+**Descriptive/monitoring metrics** (`fractional_order_count`,
+`fractional_fill_rate`, `fractional_notional_total`): missing or errored
+data → session excluded from threshold evaluation, flagged for
+investigation. Three consecutive missing sessions → investigation (not a
+kill, but a hold on new fractional entries until resolved).
 
-- **Protected fractional notional**: at each loop heartbeat, the sum of
-  fractional position notional that has an active software stop registered
-  (registry entry exists AND `is_armed()` AND staleness < max). This is
-  the "protected" portion; the complement is "unprotected."
-- **Heartbeat age distribution**: over a minimum 20-session observation
-  window (shadow or paper), the distribution of time between consecutive
-  successful heartbeat stamps. P99 heartbeat gap = the worst-case detection
-  delay.
-- **Watchdog detection + page delivery + acknowledgement**: from the pager
-  SLA drill (orchestrator PR #481), the measured end-to-end latency from
-  missed heartbeat to operator acknowledgement.
-- **Aggregated bound**: `unprotected_fractional_notional / PV` at the P99
-  heartbeat gap, combined with the measured page-to-ack latency, produces
-  the actual time-at-risk. The 4% PV kill-rule threshold is evaluated
-  against this measured bound, not the assumed 2% from the original
-  enablement attempt.
+## Dead-process at-risk-notional bound
+
+The previous "4% PV" statement conflated notional exposure (dollars) with
+time (latency). These are separate quantities:
+
+### What is being bounded: at-risk notional
+
+The decision is: **how much fractional notional is unprotected during a
+dead-process window?** This is a notional quantity (USD), not a loss
+estimate.
+
+- **At-risk notional** = `gross_fractional_position_notional ×
+  (1 − fractional_stop_coverage)` at any point in time. With the coverage
+  invariant above enforced, this should be 0 at all heartbeat boundaries
+  — but can be nonzero transiently between a buy fill and the next
+  registry stamp.
+- **Transient exposure window** = time between a fractional buy fill and
+  the registry stamp that covers it. Measured over a 20-session shadow
+  window as `P99(fill_to_stamp_latency)`.
+- **Kill threshold**: at-risk notional > 5% PV at any heartbeat boundary
+  (not transient — the transient window is bounded by the fill-to-stamp
+  latency, which is measured but not independently kill-gated).
+
+### What is NOT bounded here
+
+A financial-loss estimate under a dead-process scenario requires an
+adverse-move model (historical stress distribution, gap risk, confidence
+level, horizon). This contract does NOT produce a loss bound — it produces
+a notional-exposure bound. A loss estimate is a separate analysis
+(orchestrator research scope) that must be completed before the operator
+risk sign-off, using the measured at-risk notional as an input alongside
+a preregistered adverse-move distribution.
 
 ## Kill/rollback rule
 
 | Trigger | Action |
 |---|---|
-| Any fractional order rejected by broker with "not fractionable" | Disable immediately, add symbol to `non_fractionable_tickers` |
+| Any fractional order rejected with "not fractionable" | Disable immediately, add symbol to `non_fractionable_tickers` |
 | `fractional_fill_rate` < 95% over 5 sessions | Disable + investigate broker connectivity |
-| `software_stops_armed` false at session start | Disable (prerequisite violated) |
-| Measured dead-process exposure > 4% PV | Disable + incident review |
+| `fractional_stop_coverage` < 1.0 at any heartbeat boundary | Disable immediately + immutable integrity incident |
+| At-risk notional > 5% PV at any heartbeat boundary | Disable + incident review |
+| Safety-critical metric missing/errored | Block new fractional entries next session |
 | Operator request | Disable (flip boolean) |
 
 ## Rollback procedure
