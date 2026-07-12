@@ -690,11 +690,10 @@
   "fractional_shares": {
    "_comment": "S-FRAC v2 stage-2 sizing contract (renquant-pipeline #153 / doc/design/2026-07-02-s-frac-fractional-v2.md / doc/design/2026-07-07-104-105-cash-drag-resolution.md): declare the fractional-sizing policy in strategy config instead of relying on pipeline code defaults, but keep it DEFAULT OFF until the active-path capability gate, broker guard, and sizing-fidelity evidence are all proven. While disabled, 104 stays on the safe whole-share + A-3 fallback path.",
    "_provenance": "2026-07-07 cash-drag phase-1 follow-up: strategy-104 owns the operator-visible enablement bit and the sizing-policy defaults; execution owns broker validation, pipeline owns sizing math, orchestrator owns scorecard monitoring.",
-   "enabled": true,
+   "enabled": false,
    "min_notional": 1.0,
    "min_fractional_trade_notional": 25.0,
-   "non_fractionable_tickers": [],
-   "_enabled_20260710": "ENABLED 2026-07-10 by recorded operator directive (GOAL-6: all positive-EV features live today, explicit override of the stage-3 shadow/pager sequence). RISK ACCEPTED ON RECORD: fractional positions cannot carry broker-side GTC stops (Alpaca fractional = DAY-only); machine-death unprotected-window exposure bounded by assumption at ~2% PV (10% fractional book cap x 20% adverse move; 40% gap => ~4% PV). software_stops enabled in batch-1 as the loop-resident protection. Rollback = flip this boolean."
+   "non_fractionable_tickers": []
   },
   "software_stops": {
    "enabled": false,
