@@ -21,7 +21,9 @@ strategy-104 PR #54 (2026-07-07 cash-drag phase-1).
 | Stage-3 shadow packet: fractional sizing in shadow mode with monitoring | orchestrator | Not started |
 | Software stops pager SLA demonstrated | orchestrator PR #481 | Merged (dark template) |
 | Dead-process at-risk-notional bound measured (see §Dead-process below) | orchestrator | Not measured |
-| Fractional stop coverage invariant proven (see §Coverage below) | orchestrator + execution | Not implemented |
+| Fractional stop coverage invariant proven (see §Invariant 1 below) | orchestrator + execution | Not implemented |
+| Fractional gross notional cap enforced (see §Invariant 2 below) | orchestrator + pipeline | Not implemented |
+| Execution liveness chain demonstrated (see §Invariant 2 below) | orchestrator | Not measured |
 | Explicit signed-off risk decision with evidence | operator | Pending above |
 
 ## Broker contract prerequisite
@@ -49,11 +51,16 @@ Before enablement, the broker adapter must demonstrate:
   object: the fill log with order IDs, quantities, prices, and
   rejection/error events.
 
-## Fractional stop coverage invariant
+## Protection invariants
 
-`is_armed()` alone is insufficient — a parseable registry can be armed with
-zero entries, and a start-of-session check says nothing about fractional
-buys opened later in the session.
+Fractional position protection requires two independent invariants:
+**state coverage** (data plane — are the stop records complete?) and
+**execution liveness** (control plane — is a process alive to act on
+them?). Coverage == 1.0 does not imply liveness: the registry can be
+complete, parseable, and within its staleness budget while no process is
+evaluating or submitting the stop exit.
+
+### Invariant 1: State coverage
 
 **Coverage metric** (computed at every post-order and heartbeat boundary):
 
@@ -80,6 +87,84 @@ Where:
 - Unknown/uncovered fractional positions (in broker holdings but not in
   the registry) → hard gate: no new fractional buys until reconciled.
 
+### Invariant 2: Execution liveness
+
+State coverage cannot establish a dead-process exposure bound because the
+registry remains 1.0 when the evaluator dies. Protection requires a
+running process that periodically evaluates stop conditions and submits
+exit orders. **Execution liveness** measures whether that process is alive.
+
+**Liveness chain** (each link must be demonstrated):
+1. **Last successful evaluation** — timestamp of the most recent
+   heartbeat where the evaluator checked stop conditions AND confirmed
+   connectivity to the broker (not just registry read).
+2. **Stale detection** — an independent watchdog (launchd heartbeat or
+   external monitor) detects that the evaluator has not checked in within
+   `max_staleness_minutes`. Detection latency = watchdog interval.
+3. **Page delivery** — ntfy/pager notification sent. Delivery latency
+   measured from watchdog trigger to delivery confirmation.
+4. **Acknowledgement** — operator acknowledges the page.
+5. **Recovery/manual flatten** — operator either restarts the evaluator or
+   manually flattens fractional positions via broker.
+
+**Execution liveness exposure:** During the interval from step 1 to step
+5, every gross fractional holding whose protection requires the loop is at
+risk. The exposure is:
+```
+liveness_exposure = gross_fractional_notional_at_last_eval / PV
+```
+This is bounded NOT by the coverage metric (which is 1.0 throughout) but
+by an independent **fractional gross notional cap**:
+```
+gross_fractional_notional <= fractional_gross_cap_pct × PV
+```
+The cap limits how much fractional exposure CAN exist, and therefore how
+much is at risk during a dead-process window regardless of coverage state.
+
+**Relationship between the two invariants:**
+- State coverage gates individual orders: no buy without a registered
+  stop.
+- The gross cap gates aggregate exposure: total fractional notional
+  cannot exceed the cap.
+- Together they bound dead-process risk: at most `fractional_gross_cap_pct
+  × PV` is at risk, all of which has a registered stop (coverage == 1.0),
+  but no process is acting on the stops until recovery.
+
+**What the threshold caps:** The precommitted bound caps gross at-risk
+notional (USD). It does NOT cap outage duration (time, bounded by the
+liveness chain latencies) or financial loss (requires an adverse-move
+model, see §Dead-process below). The threshold is enforceable because
+the gross cap is a hard gate on fractional buys, not a post-hoc
+measurement.
+
+### Buy/stop lifecycle
+
+A stop cannot be irrevocably registered for a position that may not fill.
+The lifecycle has three states:
+
+1. **Pending/reservation:** Before a fractional buy order is submitted,
+   a stop reservation record is created in the registry with status
+   `PENDING`. The reservation is included in coverage calculations as
+   if the position existed (i.e., coverage must be 1.0 including the
+   pending stop before the buy order is submitted).
+2. **Fill-confirmed/active:** On receiving a fill event from the broker,
+   the stop record transitions to `ACTIVE` with the actual fill price
+   and quantity. The stop trigger level is set based on the fill price.
+   The fill timestamp is recorded for `fill_to_stamp_latency`
+   measurement.
+3. **Cancelled/reconciled:** On reject, cancel, or expiry of the buy
+   order, the pending reservation is removed from the registry. On
+   partial fill, the reservation is split: filled portion transitions
+   to ACTIVE, unfilled portion is cancelled. On position exit (sell
+   fill), the stop record is archived with exit timestamp and reason.
+
+**Reconciliation:** At each heartbeat, the registry is reconciled against
+broker holdings. Any ACTIVE stop without a corresponding broker position
+→ archive (position was sold externally or by another path). Any broker
+fractional position without an ACTIVE stop → coverage violation → kill
+trigger (Invariant 1). Any PENDING stop older than
+`max_pending_age_minutes` without a fill → cancel + investigate.
+
 ## Monitoring contract (for future enablement)
 
 When enabled, the following metrics are tracked daily. Ownership:
@@ -94,13 +179,16 @@ into the daily run bundle and surfaces them in the scorecard.
 | `fractional_fill_rate` | filled fractional orders / submitted fractional orders. Terminal states: filled, partially_filled (counted as filled), canceled, rejected, expired. Pending/new excluded from denominator. Rolling 5-session window. | execution | > 95% over 5 sessions |
 | `fractional_notional_total` | sum of (fill_price × fill_qty) for all fractional fills in the session. Source: broker fill events. Currency: USD. | execution | < 10% PV |
 | `non_fractionable_reject_count` | count of orders rejected with "not fractionable" reason code | execution | = 0 |
-| `fractional_stop_coverage` | see §Coverage above | orchestrator | = 1.0 |
+| `fractional_stop_coverage` | see §Invariant 1 above | orchestrator | = 1.0 |
 | `stop_staleness_minutes` | max heartbeat age across all fractional-position stops | orchestrator | < max_staleness_minutes |
+| `gross_fractional_notional_pct` | gross_fractional_notional / PV. Source: broker portfolio snapshot. | orchestrator | <= fractional_gross_cap_pct |
+| `evaluator_last_heartbeat_age` | minutes since last successful evaluator heartbeat (stop evaluation + broker connectivity confirmed) | orchestrator | < max_staleness_minutes |
 
 ### Missing/errored data policy
 
 **Safety-critical metrics** (`fractional_stop_coverage`, `stop_staleness_minutes`,
-`non_fractionable_reject_count`): missing or errored data is a **fail-closed
+`non_fractionable_reject_count`, `gross_fractional_notional_pct`,
+`evaluator_last_heartbeat_age`): missing or errored data is a **fail-closed
 event** — block new fractional entries for the next session and create an
 immutable integrity incident in the run bundle. These metrics cannot be
 excluded from evaluation because their absence is itself the safety failure
@@ -114,36 +202,47 @@ kill, but a hold on new fractional entries until resolved).
 
 ## Dead-process at-risk-notional bound
 
-The previous "4% PV" statement conflated notional exposure (dollars) with
-time (latency). These are separate quantities:
+### What is being bounded
 
-### What is being bounded: at-risk notional
+During a dead-process window, state coverage (Invariant 1) remains 1.0 —
+the registry is intact but no process is evaluating or submitting stops.
+The at-risk quantity is bounded by **Invariant 2 (execution liveness)**,
+specifically the fractional gross notional cap:
 
-The decision is: **how much fractional notional is unprotected during a
-dead-process window?** This is a notional quantity (USD), not a loss
-estimate.
+- **At-risk notional** = `gross_fractional_notional` at the time the
+  evaluator dies. Bounded by `fractional_gross_cap_pct × PV` (the hard
+  cap from Invariant 2).
+- **Kill threshold**: `gross_fractional_notional > fractional_gross_cap_pct
+  × PV` at any heartbeat boundary → block new fractional buys.
+  `fractional_gross_cap_pct` is set at enablement (proposed: 5% PV) and
+  is enforceable because it is a pre-order gate, not a post-hoc
+  measurement.
+- **Transient coverage gap** = time between a fractional buy fill and the
+  stop reservation transitioning from PENDING to ACTIVE. Measured over a
+  20-session shadow window as `P99(fill_to_stamp_latency)`. This is a
+  data-plane latency bounded by the buy/stop lifecycle (§above), not the
+  dead-process scenario.
 
-- **At-risk notional** = `gross_fractional_position_notional ×
-  (1 − fractional_stop_coverage)` at any point in time. With the coverage
-  invariant above enforced, this should be 0 at all heartbeat boundaries
-  — but can be nonzero transiently between a buy fill and the next
-  registry stamp.
-- **Transient exposure window** = time between a fractional buy fill and
-  the registry stamp that covers it. Measured over a 20-session shadow
-  window as `P99(fill_to_stamp_latency)`.
-- **Kill threshold**: at-risk notional > 5% PV at any heartbeat boundary
-  (not transient — the transient window is bounded by the fill-to-stamp
-  latency, which is measured but not independently kill-gated).
+### Outage duration (separate quantity)
+
+The dead-process outage duration is bounded by the liveness chain
+(Invariant 2): `last_eval → stale_detection → page_delivery → ack →
+recovery`. Each link's latency is measured during the 20-session shadow
+window. The total outage P99 is the sum of the chain's P99 latencies.
+This is a time quantity (minutes), not a notional quantity.
 
 ### What is NOT bounded here
 
-A financial-loss estimate under a dead-process scenario requires an
-adverse-move model (historical stress distribution, gap risk, confidence
-level, horizon). This contract does NOT produce a loss bound — it produces
-a notional-exposure bound. A loss estimate is a separate analysis
-(orchestrator research scope) that must be completed before the operator
-risk sign-off, using the measured at-risk notional as an input alongside
-a preregistered adverse-move distribution.
+A financial-loss estimate under a dead-process scenario requires:
+1. The at-risk notional (bounded above by the gross cap)
+2. The outage duration (bounded above by the liveness chain)
+3. An adverse-move model: historical stress distribution, gap risk,
+   confidence level, and horizon over the outage duration
+
+This contract produces bounds (1) and (2). Bound (3) — the loss
+estimate — is a separate analysis (orchestrator research scope) that must
+be completed before the operator risk sign-off, using (1) and (2) as
+inputs alongside a preregistered adverse-move distribution.
 
 ## Kill/rollback rule
 
@@ -152,7 +251,8 @@ a preregistered adverse-move distribution.
 | Any fractional order rejected with "not fractionable" | Disable immediately, add symbol to `non_fractionable_tickers` |
 | `fractional_fill_rate` < 95% over 5 sessions | Disable + investigate broker connectivity |
 | `fractional_stop_coverage` < 1.0 at any heartbeat boundary | Disable immediately + immutable integrity incident |
-| At-risk notional > 5% PV at any heartbeat boundary | Disable + incident review |
+| `gross_fractional_notional_pct` > `fractional_gross_cap_pct` | Disable + block new fractional buys until below cap |
+| `evaluator_last_heartbeat_age` > `max_staleness_minutes` | Independent watchdog pages operator; disable new fractional entries |
 | Safety-critical metric missing/errored | Block new fractional entries next session |
 | Operator request | Disable (flip boolean) |
 
