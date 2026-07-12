@@ -665,7 +665,7 @@
  "max_positions_per_sector": 6,
  "sizing": {
   "one_share_floor_enabled": false,
-  "_comment": "2026-07-09 P1 PREPARE step (renquant-pipeline doc/2026-07-02-one-share-floor-initiation.md, 3 codex review rounds, 20/20 tests). Consumer: renquant-pipeline task_selection.py SizeAndEmitTask (ctx.config.get('sizing').get('one_share_floor_enabled')). When true, a candidate that zeroes out ONLY because of whole-share rounding rounds UP to 1 share iff (a) 1 share <= regime max_position_pct * PV and (b) 1 share <= investable headroom. Default false = byte-identical to pre-PR. Enablement requires RS-2 preregistered shadow gate (orchestrator doc/research/2026-07-02-rs2-lane-a-timing.md \u00a7A-3) \u2014 measured 07-02 impact: BLK $995 + AVGO $360 = $1,355 additional deployment, cash 65%\u219252%. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract."
+  "_comment": "Consumer: renquant-pipeline task_selection.py SizeAndEmitTask. When true, a candidate that zeroes out ONLY because of whole-share rounding rounds UP to 1 share iff (a) 1 share <= regime max_position_pct * PV and (b) 1 share <= investable headroom. Pipeline: 3 codex review rounds, 20/20 tests (renquant-pipeline doc/2026-07-02-one-share-floor-initiation.md). Enablement contract: strategy-104 doc/progress/2026-07-12-one-share-floor-enablement.md. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract."
  },
  "deployment_governor": {
   "enabled": false,
