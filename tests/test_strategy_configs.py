@@ -725,10 +725,6 @@ def test_shadow_ab_leaves_prod_and_golden_at_production_baseline() -> None:
         assert cfg["ranking"]["kelly_sizing"]["fractional"] == 0.3, name
         assert cfg["ranking"]["kelly_sizing"]["max_concentration"] == 0.12, name
         assert cfg["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.12, name
-        # Production baseline updated 2026-07-10 (operator enablement batch-1,
-        # BEFORE the first counted two-arm session): one-share floor is now
-        # part of the production baseline; both experiment arms already
-        # carry floor=ON so the (A) arm-vs-arm estimand is unaffected.
         assert cfg["sizing"]["one_share_floor_enabled"] is True, name
 
 

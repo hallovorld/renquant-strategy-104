@@ -665,8 +665,8 @@
  "max_positions_per_sector": 6,
  "sizing": {
   "one_share_floor_enabled": true,
-  "_comment": "2026-07-09 P1 PREPARE step (renquant-pipeline doc/2026-07-02-one-share-floor-initiation.md, 3 codex review rounds, 20/20 tests). Consumer: renquant-pipeline task_selection.py SizeAndEmitTask (ctx.config.get('sizing').get('one_share_floor_enabled')). When true, a candidate that zeroes out ONLY because of whole-share rounding rounds UP to 1 share iff (a) 1 share <= regime max_position_pct * PV and (b) 1 share <= investable headroom. Default false = byte-identical to pre-PR. Enablement requires RS-2 preregistered shadow gate (orchestrator doc/research/2026-07-02-rs2-lane-a-timing.md \u00a7A-3) \u2014 measured 07-02 impact: BLK $995 + AVGO $360 = $1,355 additional deployment, cash 65%\u219252%.",
-  "_enabled_20260710": "ENABLED 2026-07-10 by recorded operator directive (twice-stated: 'I don't want to wait, prepare everything, go live now') \u2014 operator risk decision superseding the RS-2 shadow-window process; enablement PR config/operator-enablement-batch-1; rollback = flip this boolean."
+  "_comment": "Consumer: renquant-pipeline task_selection.py SizeAndEmitTask. When true, a candidate that zeroes out ONLY because of whole-share rounding rounds UP to 1 share iff (a) 1 share <= regime max_position_pct * PV and (b) 1 share <= investable headroom. Pipeline: 3 codex review rounds, 20/20 tests (renquant-pipeline doc/2026-07-02-one-share-floor-initiation.md).",
+  "_enabled_20260712": "ENABLED 2026-07-12. Sealed replay evidence (orchestrator doc/research/2026-07-11-enablement-evidence-floor-stops-fractional.md section 2.3): 6 of 11 unambiguous canonical sessions rescued, $392-$1356/session, mean $911 (~8.5% PV), zero admission displacement. Decision artifact + monitoring contract + kill rule: strategy-104 doc/progress/2026-07-12-one-share-floor-enablement.md. Rollback = flip this boolean to false."
  },
  "deployment_governor": {
   "enabled": false,
