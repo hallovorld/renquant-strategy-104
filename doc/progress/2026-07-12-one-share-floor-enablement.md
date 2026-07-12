@@ -1,18 +1,25 @@
-# One-share floor enablement — decision artifact + monitoring contract
+# One-share floor — enablement contract (flag OFF, pending prerequisites)
 
 **Date**: 2026-07-12
 **Feature**: `sizing.one_share_floor_enabled`
 **PR**: strategy-104#55 (`config/operator-enablement-batch-1`)
-**Status**: ENABLED (config flip `false` → `true`)
+**Status**: OFF. This document stages the monitoring contract and kill rule
+so they are reviewed and merged BEFORE the flag is flipped. Enablement
+requires the prerequisites below.
 
-## Decision record
+## Enablement prerequisites
 
-**Feature**: one-share floor — a candidate that zeroes out ONLY because of
-whole-share rounding rounds UP to 1 share iff (a) 1 share <=
+1. **Monitoring wiring**: pipeline#191 merged and producing the counters
+   below in the daily run bundle (not just a contract definition).
+2. **Operator authorization**: a separately-filed, independently-verifiable
+   enablement PR that flips the boolean, references this contract, and is
+   approved through the normal review gate.
+
+## Feature
+
+One-share floor — a candidate that zeroes out ONLY because of whole-share
+rounding rounds UP to 1 share iff (a) 1 share <=
 `regime.max_position_pct * PV` and (b) 1 share <= investable headroom.
-
-**Date**: 2026-07-10 (operator directive recorded in conversation; this
-artifact formalizes it per Codex review requirements).
 
 **Evidence basis**: sealed retrospective replay of production decision
 ledger (orchestrator `doc/research/2026-07-11-enablement-evidence-floor-stops-fractional.md`
@@ -27,12 +34,9 @@ ledger (orchestrator `doc/research/2026-07-11-enablement-evidence-floor-stops-fr
 
 **Gate status**: the evidence packet is retrospective exploratory replay,
 not an RS-2 §A-3 preregistered shadow gate. The armed shadow instrument is
-structurally unable to satisfy RS-2 as written (scorer mismatch). This
-enablement is a recorded deviation from the RS-2 process, authorized by
-the operator, with the monitoring and rollback controls below as
-substitutes for the preregistered gate.
-
-**Expiry**: no calendar expiry; kill rule below governs deactivation.
+structurally unable to satisfy RS-2 as written (scorer mismatch).
+Enablement requires the monitoring wiring and authorization prerequisites
+above.
 
 ## Monitoring contract (daily, from first enabled session)
 

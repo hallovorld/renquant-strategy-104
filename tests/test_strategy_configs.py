@@ -725,7 +725,7 @@ def test_shadow_ab_leaves_prod_and_golden_at_production_baseline() -> None:
         assert cfg["ranking"]["kelly_sizing"]["fractional"] == 0.3, name
         assert cfg["ranking"]["kelly_sizing"]["max_concentration"] == 0.12, name
         assert cfg["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.12, name
-        assert cfg["sizing"]["one_share_floor_enabled"] is True, name
+        assert cfg["sizing"]["one_share_floor_enabled"] is False, name
 
 
 def test_legacy_shadow_config_untouched_by_shadow_ab() -> None:
