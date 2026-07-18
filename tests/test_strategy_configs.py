@@ -154,6 +154,17 @@ def test_bull_calm_new_buys_and_panel_scorer_contract_are_explicit() -> None:
     assert "patchtst_shadow" in shadow["ranking"]["panel_scoring"]["artifact_path"]
 
 
+def test_panel_watchlist_candidate_universe_is_shadow_only() -> None:
+    """A broader candidate entry rule is measurable before any live promotion."""
+    production = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
+    shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
+
+    assert production["ranking"]["panel_scoring"].get("candidate_universe") is None
+    assert golden["ranking"]["panel_scoring"].get("candidate_universe") is None
+    assert shadow["ranking"]["panel_scoring"]["candidate_universe"] == "watchlist"
+
+
 def test_xgb_operator_promotion_contract_is_auditable() -> None:
     cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
     golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
