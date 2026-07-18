@@ -806,6 +806,8 @@
    "buy_floor": "adaptive_quantile",
    "buy_floor_adaptive_cap": 0.3,
    "buy_floor_min": 0.2,
+   "buy_floor_min_n": 12,
+   "buy_floor_absolute_smalln": 0.5,
    "buy_floor_std_mult": 1,
    "_buy_floor_reason": "2026-06-11 false-BEAR audit P2 (operator-approved audit; pipeline #113): adaptive_mean_std (max(0.20, mean+1*std), uncapped) is shape-unstable on the Platt-compressed PatchTST calibrator (rank_score IQR=0.039 on 2026-06-11; dropped 71/83=86%) and structurally caps breadth at ~16% regardless of edge (Grinold FLAM: IR=IC*sqrt(BR)). adaptive_quantile admits the top (1-q)=20% of the cross-section by calibrated rank \u2014 breadth becomes a deliberate parameter, stable under score compression. buy_floor_min=0.20 remains the absolute fail-safe on degenerate cross-sections. Requires pipeline #113.",
    "rotation_advantage": 0,
