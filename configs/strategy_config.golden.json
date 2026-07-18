@@ -1026,9 +1026,7 @@
           "_2026_06_23_role": "Previous primary scorer moved to strategy_config.shadow.json after XGB promotion."
         }
       ],
-      "shadow_experiment": "renquant_104_patchtst_shadow_after_xgb_promotion",
-      "buy_floor_min_n": 12,
-      "buy_floor_absolute_smalln": 0.5
+      "shadow_experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
     },
     "universe_floor": {
       "type": "sharpe",
