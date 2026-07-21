@@ -1022,7 +1022,7 @@
         {
           "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
           "kind": "hf_patchtst",
-          "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
+          "artifact_path": "artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
           "_2026_06_23_role": "Previous primary scorer moved to strategy_config.shadow.json after XGB promotion."
         }
       ],
