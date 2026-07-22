@@ -48,7 +48,7 @@
   "readonly_shadow": {
     "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
     "kind": "hf_patchtst",
-    "artifact_path": "../../artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
+    "artifact_path": "artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
     "config_path": "configs/strategy_config.shadow.json",
     "experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
   },
