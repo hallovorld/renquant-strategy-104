@@ -41,3 +41,16 @@ shows truthfully who typed what under whose grant.
   probabilities before this activation.
 - Revert: `git revert` of this commit; no live artifact/state is touched by
   this PR. Pin advance is a separate, separately-recorded step.
+
+## Post-merge format fix (same delegated batch)
+
+The umbrella's pre-deploy artifact-path gate (#525/#529, the GOAL-1 AC1
+layer) caught a real defect in the #65 entry before it could reach a live
+session: `expected_content_sha256` was pinned as the bare 64-hex file
+digest, but BOTH the #211 runtime observer and the gate observe the
+abbreviated `sha256:<16 hex>` contract form — the pin would have raised an
+identity-mismatch FAULT on day 1. Fixed to `sha256:99687a900bee01c4`
+(verified empirically: pinned-runtime `PanelScorer.load` observed fp
+matches the full-form `expected_config_fingerprint` pin verbatim, so that
+pin is unchanged). The gate catching this pre-deploy is the designed
+behavior of the shadow-reliability layer.
