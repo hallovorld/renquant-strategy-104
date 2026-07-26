@@ -1024,14 +1024,6 @@
           "kind": "hf_patchtst",
           "artifact_path": "artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
           "_2026_06_23_role": "Previous primary scorer moved to strategy_config.shadow.json after XGB promotion."
-        },
-        {
-          "name": "topdecile_clf_blend_leg",
-          "kind": "xgb",
-          "artifact_path": "artifacts/shadow/panel-clf.top-decile.fwd60.json",
-          "expected_content_sha256": "99687a900bee01c472c327fb15d05d5da6a8f5e42f1e0856905cf32554e47b55",
-          "expected_config_fingerprint": "sha256:1d8f167fed18cd8cb1e0760251fdd5398724e630462d92b41561d2e19973e41b",
-          "_role_2026_07_26": "clf leg of the CONFIRMED blend objective (model#74/75/76, disjoint-seed confirmed +0.0687 CI90[+0.0156,+0.1269]); scores = P(top decile fwd_60d_excess); the blend z(prod)+z(clf) is computed OFFLINE by the readout job, never in the scorer; governed by pipeline#213's FROZEN forward readout (INFO@60, GATE@120 matured sessions); NOT a production scorer"
         }
       ],
       "shadow_experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
