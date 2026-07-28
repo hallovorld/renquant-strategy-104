@@ -216,6 +216,7 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
             "_2026_07_26_role": "clf leg of the CONFIRMED blend objective (model#74/75/76); scores = P(top decile fwd_60d_excess); blend computed OFFLINE by the readout job; governed by pipeline#213 frozen forward readout; NOT a production scorer",
             "_2026_07_26_operator_activation": "operator-directed shadow-slot activation; executed by the claude agent under explicit in-session operator delegation (2026-07-26) after the operator-run command block failed twice to terminal paste mangling; see PR body and doc/progress/2026-07-26-operator-delegated-activation.md for the verbatim grant",
             "_2026_07_27_restamp": "artifact re-stamped with effective_train_cutoff_date=2026-04-28 (model#83; missing_train_cutoff health fix); booster byte-identical, predictions identical, config_fingerprint unchanged",
+            "_2026_07_28_recipe_restamp": "adds provenance_schema_version/recipe_id/required_axis_fields (walkforward_only_v1, common#36+model#84); booster/predictions/fp unchanged",
         },
     ]
     assert (
