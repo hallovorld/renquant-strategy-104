@@ -211,7 +211,7 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
             "name": "topdecile_clf_blend_leg",
             "kind": "xgb",
             "artifact_path": "artifacts/shadow/panel-clf.top-decile.fwd60.json",
-            "expected_content_sha256": "sha256:6101a9fe5b200900",
+            "expected_content_sha256": "sha256:1e644354e0981f47",
             "expected_config_fingerprint": "sha256:1d8f167fed18cd8cb1e0760251fdd5398724e630462d92b41561d2e19973e41b",
             "_2026_07_26_role": "clf leg of the CONFIRMED blend objective (model#74/75/76); scores = P(top decile fwd_60d_excess); blend computed OFFLINE by the readout job; governed by pipeline#213 frozen forward readout; NOT a production scorer",
             "_2026_07_26_operator_activation": "operator-directed shadow-slot activation; executed by the claude agent under explicit in-session operator delegation (2026-07-26) after the operator-run command block failed twice to terminal paste mangling; see PR body and doc/progress/2026-07-26-operator-delegated-activation.md for the verbatim grant",
@@ -874,7 +874,7 @@ def test_shadow_blend_profile_semantic_pins() -> None:
         },
         {
             "artifact_path": "artifacts/shadow/panel-clf.top-decile.fwd60.json",
-            "expected_content_sha256": "sha256:6101a9fe5b200900",
+            "expected_content_sha256": "sha256:1e644354e0981f47",
             "expected_config_fingerprint": (
                 "sha256:1d8f167fed18cd8cb1e0760251fdd5398724e630462d92b41561d"
                 "2e19973e41b"

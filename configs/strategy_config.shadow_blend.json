@@ -928,7 +928,7 @@
         },
         {
           "artifact_path": "artifacts/shadow/panel-clf.top-decile.fwd60.json",
-          "expected_content_sha256": "sha256:6101a9fe5b200900",
+          "expected_content_sha256": "sha256:1e644354e0981f47",
           "expected_config_fingerprint": "sha256:1d8f167fed18cd8cb1e0760251fdd5398724e630462d92b41561d2e19973e41b",
           "_role": "component 1 = top-decile classifier (model#74/75/76 confirmatory line); pins = the 2026-07-27 model#83/strategy#67 re-stamp (content rotated 99687a90 -> 6101a9fe; fp unchanged)"
         }
