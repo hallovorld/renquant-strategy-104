@@ -24,6 +24,7 @@ def test_required_policy_configs_exist_and_parse() -> None:
         "strategy_config.shadow.json",
         "strategy_config.shadow_a.json",
         "strategy_config.shadow_b.json",
+        "strategy_config.shadow_blend.json",
         "xgb_prod_artifact_manifest.json",
     ):
         data = _load(name)
@@ -827,6 +828,105 @@ def test_loader_rejects_local_absolute_artifact_path(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="repo-relative"):
         load_strategy_config(path)
+
+
+def test_shadow_blend_profile_semantic_pins() -> None:
+    """Pin the shadow_blend lane profile (umbrella#535 Step 5 / pipeline#218
+    kind=blend) so its identity pins and its calibration/mu decision cannot
+    silently drift.
+
+    The profile is strategy_config.json + EXACTLY five deltas:
+      1. kind="blend" + two pinned components (0=prod scorer, 1=top-decile clf)
+         with BOTH identity pins each (content abbrev-16, fp verbatim —
+         pipeline#218 fail-closed pin semantics);
+      2. global_calibration DISABLED (the prod calibrator binds the prod scorer
+         fp; against the blend composite fp it would config_mismatch fail-close
+         — the 2026-06 shadow-config-FP-restamp trap);
+      3. conviction_gate DISABLED (floors on calibrator expected_return, which
+         no longer exists — every candidate would drop as conviction:mu_nan);
+      4. ranking.kelly_sizing DISABLED (use_calibrator_mu would zero every
+         target — legacy multiplicative sizing sizes the shadow intents);
+      5. shadow_models/shadow_experiment removed (this lane IS the blend).
+    Everything else must stay semantically identical to production so the
+    lane remains "shadow like prod minus submission".
+    """
+    prod = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    blend = load_strategy_config(CONFIG_DIR / "strategy_config.shadow_blend.json")
+    panel = blend["ranking"]["panel_scoring"]
+
+    # 1. blend kind + exact component pins (order-significant: 0=prod, 1=clf).
+    assert panel["enabled"] is True
+    assert panel["kind"] == "blend"
+    assert panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
+    components = panel["components"]
+    assert [
+        {
+            "artifact_path": c["artifact_path"],
+            "expected_content_sha256": c["expected_content_sha256"],
+            "expected_config_fingerprint": c["expected_config_fingerprint"],
+        }
+        for c in components
+    ] == [
+        {
+            "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
+            "expected_content_sha256": "sha256:04d7a381cd6df847",
+            "expected_config_fingerprint": "sha256:f8fb2259b2bf1537",
+        },
+        {
+            "artifact_path": "artifacts/shadow/panel-clf.top-decile.fwd60.json",
+            "expected_content_sha256": "sha256:6101a9fe5b200900",
+            "expected_config_fingerprint": (
+                "sha256:1d8f167fed18cd8cb1e0760251fdd5398724e630462d92b41561d"
+                "2e19973e41b"
+            ),
+        },
+    ]
+    # Component 0 must be the SAME artifact the production primary runs —
+    # the blend is z(prod)+z(clf), not a new prod model.
+    assert (
+        components[0]["artifact_path"]
+        == prod["ranking"]["panel_scoring"]["artifact_path"]
+    )
+    # Both clf pins must match the prod config's shadow_models clf leg
+    # (single source of the 2026-07-27 re-stamp identity).
+    clf_leg = next(
+        m
+        for m in prod["ranking"]["panel_scoring"]["shadow_models"]
+        if m["name"] == "topdecile_clf_blend_leg"
+    )
+    assert components[1]["expected_content_sha256"] == clf_leg["expected_content_sha256"]
+    assert (
+        components[1]["expected_config_fingerprint"]
+        == clf_leg["expected_config_fingerprint"]
+    )
+
+    # 2-4. the calibration/mu decision, pinned.
+    assert panel["global_calibration"]["enabled"] is False
+    assert panel["conviction_gate"]["enabled"] is False
+    assert blend["ranking"]["kelly_sizing"]["enabled"] is False
+    # QP mu contract stays strict and alpha_to_mu stays the legal mu source.
+    assert blend["rotation"]["joint_actions"]["qp_mu_contract"] == "strict"
+    assert blend["ranking"]["alpha_to_mu"]["enabled"] is True
+
+    # 5. no shadow legs on the blend lane.
+    assert "shadow_models" not in panel
+    assert "shadow_experiment" not in panel
+
+    # Everything else: semantically identical to production (the profile is
+    # "prod minus submission", not a fork). Normalize away the five deltas +
+    # provenance notes, then require equality.
+    prod_norm = _strip_provenance(prod)
+    blend_norm = _strip_provenance(blend)
+    for cfg in (prod_norm, blend_norm):
+        p = cfg["ranking"]["panel_scoring"]
+        p.pop("kind", None)
+        p.pop("components", None)
+        p.pop("shadow_models", None)
+        p.pop("shadow_experiment", None)
+        p["global_calibration"].pop("enabled", None)
+        p["conviction_gate"].pop("enabled", None)
+        cfg["ranking"]["kelly_sizing"].pop("enabled", None)
+    assert blend_norm == prod_norm
 
 
 def _strip_provenance(value):
