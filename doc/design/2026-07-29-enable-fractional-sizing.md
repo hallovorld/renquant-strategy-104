@@ -10,22 +10,36 @@ and not a flag flip is that it alters what reaches the broker.
 
 ## 1. What is being proposed
 
-Add to `configs/strategy_config.json` (this repo's pinned production config —
-also mirror into `configs/strategy_config.golden.json` per this repo's
-active==golden contract):
+**Correction (this revision):** an earlier revision of this section said the
+`fractional_shares` block is "absent entirely," citing `[VERIFIED — live
+strategy_config.json]` — but that check still read the wrong file. Read
+directly against this repo's own `configs/strategy_config.json` /
+`.golden.json` on `main` (commit `8402a62`, the same commit §3 below already
+uses for the `kelly_sizing.fractional` correction), the block **already
+exists**, added 2026-07-07 alongside the S-FRAC v2 stage-2 sizing contract
+(`renquant-pipeline#153`), and is pinned by
+`tests/test_strategy_configs.py::test_fractional_shares_contract_is_explicit_and_default_off`
+`[VERIFIED — this session, `python3 -c "import json; print(json.load(open('configs/strategy_config.json'))['execution']['fractional_shares'])"` on `main` at `8402a62`]`:
 
 ```json
 "execution": {
   "fractional_shares": {
-    "enabled": true,
-    "min_notional": <TBD, see §7>
+    "enabled": false,
+    "min_notional": 1.0,
+    "min_fractional_trade_notional": 25.0,
+    "non_fractionable_tickers": []
   }
 }
 ```
 
-Today that block is **absent entirely**. The live `execution` object holds only
-`_settlement_reason_2026_05_24`, `enabled`, `t2_settlement_days`,
-`buying_power_mode` `[VERIFIED — live strategy_config.json]`.
+So **`min_notional` is not an open TBD** (contra §7 below as originally
+written) — it was set to `1.0` (the broker's fractional-order floor,
+`MIN_FRACTIONAL_NOTIONAL_USD` in `renquant-pipeline/kernel/sizing.py`) on
+2026-07-07, with a separate $25 anti-churn dust floor
+(`min_fractional_trade_notional`) chosen alongside it. **The actual proposal
+this document evaluates is a one-line flip: `enabled: false` → `true`**, not
+new config — which does not change the risk analysis in §4-§7, only the
+"what must happen" checklist's `min_notional` line (§7).
 
 `kernel/sizing.py:204` states the contract plainly: *"no behaviour change
 unless strategy-104 opts in via `execution.fractional_shares.enabled`"*. The
@@ -33,6 +47,19 @@ S-FRAC v2 machinery is built, merged and pinned in the pipeline. **The flag
 is off today, and has been since it landed** — but this is not a first-time
 question: see §4 for a prior operator-authorized attempt to opt in that was
 walked back to OFF during review, not simply never considered.
+
+**Also relevant, lower stakes than §4:** this proposal is Phase 3 of this
+repo's own agreed cash-drag execution order
+(`renquant-orchestrator doc/design/2026-07-07-104-105-cash-drag-resolution.md`
+§4, §6.3), which asks for the cheaper Phase 2 one-share initiation floor
+(A-3) to be "exhausted or shown insufficient" first. A-3 is also still OFF
+`[VERIFIED — this session, `sizing.one_share_floor_enabled: false` in both
+`configs/strategy_config.json` and `.golden.json` on `main`]`, with its own
+staged (and, unlike fractional shares, actually-merged) enablement contract
+at `doc/progress/2026-07-12-one-share-floor-enablement.md`. Smaller than the
+§4 finding, but the operator's sign-off should cover this sequencing question
+too: accept this proposal as the fresh justification to jump ahead of A-3, or
+finish A-3 first.
 
 ## 2. What it fixes, measured
 
@@ -200,8 +227,11 @@ biggest one and is not repeated in this list.**
       unmet (one spot-checked in §4 and still appears unmet), either close
       it or explicitly re-register a smaller/different risk acceptance than
       2026-07-10's, with the same rigor.
-- [ ] Choose `min_notional` explicitly, with the reasoning recorded. A floor
-      that is too low creates dust; too high reproduces the current problem.
+- [ ] Re-validate the already-chosen `min_notional=1.0` /
+      `min_fractional_trade_notional=25.0` (§1; set 2026-07-07) against
+      current book size and price levels — not "choose," since a value is
+      already on record, but this document does not re-confirm it still
+      makes sense.
 - [ ] **Full-funnel sim** on the live config with the flag on vs off, per the
       live-tree mutation preflight rule — "committed = safe" is false here.
       **"No existing order changes" is NOT the bar** — a previously-skipped
@@ -226,17 +256,24 @@ biggest one and is not repeated in this list.**
 
 ## 8. Rollback
 
-Remove the `execution.fractional_shares` block, or set `enabled: false`. The
-whole-share path is unchanged and untouched by this proposal, so reverting
-restores exactly today's behaviour. No artifact, model, or pin is involved.
+Set `execution.fractional_shares.enabled` back to `false` (the block itself
+already exists — see §1 correction — so rollback is the one-line flip, not a
+block removal). The whole-share path is unchanged and untouched by this
+proposal, so reverting restores exactly today's behaviour. No artifact,
+model, or pin is involved.
 
 ## 9. Provenance
 
-All figures `[VERIFIED]` from `RenQuant/logs/daily_104/2026-07-*.log`, the live
-`strategy_config.json`, and `renquant-pipeline/kernel/sizing.py` — all read
-READ-ONLY. The two `[DERIVED]` quantities are marked at the point of use. No
-production surface was modified.
+All figures `[VERIFIED]` from `RenQuant/logs/daily_104/2026-07-*.log`, this
+repo's own `configs/strategy_config.json` / `.golden.json` on `main`, and
+`renquant-pipeline/kernel/sizing.py` — all read READ-ONLY. The two
+`[DERIVED]` quantities are marked at the point of use. No production surface
+was modified.
 
-Related: hallovorld/renquant-orchestrator#606 (the funnel investigation),
-renquant-pipeline#223 (wash-sale materiality), renquant-pipeline#224 (the
-misleading skip message this investigation started from).
+Related: `hallovorld/renquant-orchestrator#606` (the funnel investigation),
+`hallovorld/renquant-orchestrator#607` (the original proposal this PR
+relocates and corrects), `renquant-pipeline#223` (wash-sale materiality),
+`renquant-pipeline#224` (the misleading skip message this investigation
+started from), `renquant-orchestrator
+doc/design/2026-07-07-104-105-cash-drag-resolution.md` (the execution-order
+RFC referenced in §1).

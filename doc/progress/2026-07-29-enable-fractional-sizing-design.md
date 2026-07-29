@@ -11,6 +11,21 @@ STATUS:   proposal only. NO config changed. The change is a live capital gate.
           per codex BLOCKER: the canonical config this proposes to change
           is owned by `renquant-strategy-104`, not orchestration.
 
+          **Second-pass correction (same review cycle):** the relocated
+          revision above still asserted `execution.fractional_shares` is
+          "absent entirely" and `min_notional` is "TBD" — both false. Read
+          directly against this repo's own `configs/strategy_config.json`
+          / `.golden.json` on `main` (the same commit already cited for
+          the `kelly_sizing.fractional` correction), the block exists
+          since 2026-07-07 with `min_notional=1.0` and
+          `min_fractional_trade_notional=25.0` already chosen, pinned by
+          `test_fractional_shares_contract_is_explicit_and_default_off`.
+          The prior revision applied the umbrella-vs-pinned-copy
+          correction to the Kelly value but not to this block — same class
+          of error, not re-audited the second time. Corrected in this
+          pass; the §4 orphaned-contract finding is unaffected by this
+          fix (it was independently verified against real commits).
+
 WHAT:     `doc/design/2026-07-29-enable-fractional-sizing.md` — proposes adding
           `execution.fractional_shares` to strategy-104's config, with the
           measured case, what it does NOT fix, the newly-found prior
@@ -18,9 +33,10 @@ WHAT:     `doc/design/2026-07-29-enable-fractional-sizing.md` — proposes addin
 
 WHY/DIR:  S-FRAC v2 is built, merged and pinned in the pipeline;
           `kernel/sizing.py:204` says there is no behaviour change unless
-          strategy-104 opts in, and strategy-104's `execution` block does not
-          contain `fractional_shares` at all today. This is NOT a first-time
-          question, though — see EVIDENCE below.
+          strategy-104 opts in. Strategy-104's `execution` block already
+          declares `fractional_shares` (added 2026-07-07) but keeps it
+          `enabled: false`. This is NOT a first-time question, though —
+          see EVIDENCE below.
 
 EVIDENCE: artifact: `RenQuant/logs/daily_104/2026-07-*.log`; live
                     `renquant-strategy-104/configs/strategy_config.json`
@@ -82,7 +98,9 @@ NEXT:     Operator sign-off is the gate, and per the newly-found contract,
           it is gated FIRST on re-checking that contract's 9 prerequisites
           against current state (one spot-checked this session, still
           unmet) — not on this document's own shorter checklist alone.
-          Then: choose `min_notional` deliberately, run a full-funnel sim
-          with the flag on vs off using a corrected comparison criterion
-          (not "no existing order changes" — see the design doc §7), and
-          confirm exit/tax-lot paths accept fractional quantities.
+          Then: re-validate the already-chosen `min_notional=1.0` /
+          `min_fractional_trade_notional=25.0` against current book size,
+          run a full-funnel sim with the flag on vs off using a corrected
+          comparison criterion (not "no existing order changes" — see the
+          design doc §7), and confirm exit/tax-lot paths accept fractional
+          quantities.
