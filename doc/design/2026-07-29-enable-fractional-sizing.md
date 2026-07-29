@@ -1,7 +1,11 @@
 # DESIGN (for operator sign-off): switch on fractional sizing for strategy-104
 
-**Status:** proposal. **No config changed by this PR.** The change it proposes
-is a live capital gate and needs explicit sign-off.
+**Status:** proposal, not merge-targeted. **No config changed by this PR.**
+The change it proposes is a live capital gate and needs explicit operator
+sign-off; §8's checklist is unresolved (sequencing, the 9-row 2026-07-12
+safety contract, full-funnel sim, exit/tax-lot confirmation). This document
+is a discussion record until those external gates are met — hold, don't
+merge as an approval of the underlying flip.
 
 **Moved from `hallovorld/renquant-orchestrator#607`** (codex review, 2026-07-29):
 the proposal edits strategy-104-owned policy and belongs in this repo, not the
@@ -76,7 +80,11 @@ EME   sized to 0  (remaining_cash=$8838  price=$742.73)
 2 orders placed, $463 of $9,301 cash = 5.0% deployed
 ```
 
-Size-zero skips across the visible July sessions `[VERIFIED]`:
+Size-zero skips across the visible July sessions `[VERIFIED — this session,
+grep of "insufficient cash — skip" / "NEW_BUY" lines in
+RenQuant/logs/daily_104/{07-02,07-10,07-13,07-27,07-28}.log; skip counts,
+placed notional, and starting cash all re-derived from the raw log lines,
+not carried from the prior draft]`:
 
 | date | size-zero skips | placed / cash | deployed |
 |---|---:|---|---:|
@@ -192,18 +200,23 @@ bound on at-risk capital during a dead-process window, an 8-metric daily
 monitoring contract with fail-closed missing-data handling, and named
 kill/rollback triggers.
 
-**Its own prerequisite table, unresolved as of 2026-07-12** (not
-re-verified line-by-line this session — spot-checked one row):
+**Its own prerequisite table, all 9 rows, unresolved as of 2026-07-12**
+(not re-verified line-by-line this session — spot-checked one row)
+`[VERIFIED — read 2d2f43e:doc/progress/2026-07-12-fractional-shares-enablement.md
+this session; the previous revision of this table dropped two of the nine
+rows]`:
 
 | Prerequisite | Status (2026-07-12) |
 |---|---|
 | Broker fractional contract (paper-trading round-trip evidence) | Not implemented |
+| Broker-side GTC stop limitation documented and accepted | Assumption only |
 | Stage-3 shadow packet (fractional in shadow mode + monitoring) | Not started |
 | Software stops pager SLA | Merged, but "dark template" |
 | Dead-process at-risk-notional bound | Not measured |
 | Fractional stop coverage invariant | Not implemented |
 | Fractional gross notional cap enforced | Not implemented |
 | Execution liveness chain demonstrated | Not measured |
+| Explicit signed-off risk decision with evidence | Pending above |
 
 Spot-check, this session: the pager package the table cites
 (`renquant-orchestrator#481`) is merged, and its OWN title still reads

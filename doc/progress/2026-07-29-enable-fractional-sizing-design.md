@@ -1,6 +1,9 @@
 # Progress: design proposal to switch on fractional sizing (sign-off required)
 
-STATUS:   proposal only, revised. NO config changed. Moved from
+STATUS:   proposal only, not merge-targeted, revised. This PR is a
+          discussion record pending the §8 pre-flight checklist and
+          operator sign-off — it should be held, not merged as an approval
+          of the underlying config flip. NO config changed. Moved from
           `hallovorld/renquant-orchestrator#607` (codex review, 2026-07-29:
           wrong repo — this is strategy-104-owned policy) and substantially
           corrected in the move: two of the original doc's central claims
@@ -49,15 +52,14 @@ EVIDENCE: artifact: `RenQuant/logs/daily_104/2026-07-*.log`,
                     [VERIFIED — this session, `python3 -c` reading both
                     `configs/strategy_config.json` and `.golden.json` on a
                     freshly-pulled `main`]. Size-zero skips per session
-                    (carried from the original draft, not re-measured this
-                    session): 07-02 (2), 07-10 (1), 07-13 (2), 07-27 (2),
-                    07-28 (1); deployment 2.8% / 8.8% / 6.7% / 5.0% / 0% of
-                    available cash. Names floored: TSLA $309.22, EME
-                    $742.73, SPG $236.69
-                    [VERIFIED — prior session, `RenQuant/logs/daily_104/
-                    2026-07-*.log`, carried forward from
-                    `renquant-orchestrator#607`'s original evidence, not
-                    independently re-measured here].
+                    [VERIFIED — this session, grep of "insufficient cash —
+                    skip" / "NEW_BUY" lines in RenQuant/logs/daily_104/
+                    {07-02,07-10,07-13,07-27,07-28}.log — re-derived from
+                    the raw log lines, not carried from the original draft]:
+                    07-02 (2), 07-10 (1), 07-13 (2), 07-27 (2), 07-28 (1);
+                    deployment 2.8% / 8.8% / 6.7% / 5.0% / 0% of available
+                    cash. Names floored: TSLA $309.22, EME $742.73, SPG
+                    $236.69.
   best-known?:      Yes for the defect and the (corrected) config state.
                     The impact estimate is `[DERIVED]` and deliberately
                     conservative — see the design doc §3.
