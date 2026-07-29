@@ -5,14 +5,22 @@ STATUS:   proposal only, revised. NO config changed. Moved from
           wrong repo — this is strategy-104-owned policy) and substantially
           corrected in the move: two of the original doc's central claims
           were measured against the umbrella's stale config copy rather than
-          this repo's pinned one.
+          this repo's pinned one. Also surfaces two independent gates the
+          original never mentioned at all: a sequencing conflict against
+          this repo's own agreed cash-drag execution order (§4), and a
+          more rigorous, already-reviewed safety contract for this exact
+          change that was staged in 2026-07-12 review and never merged
+          (§5) — it identifies the risk this proposal's own list otherwise
+          misses entirely: Alpaca gives fractional orders no GTC stop, so a
+          dead evaluator process is the actual failure mode.
 
 WHAT:     `doc/design/2026-07-29-enable-fractional-sizing.md` — proposes
           flipping `execution.fractional_shares.enabled` from `false` to
           `true` in this repo's pinned config, with the measured case, an
           explicit list of what it does NOT fix, a sequencing conflict
-          against this repo's own agreed cash-drag execution order, five
-          named risks, a pre-flight checklist, and rollback.
+          against this repo's own agreed cash-drag execution order, the
+          orphaned 2026-07-12 safety contract, six named risks, a pre-flight
+          checklist, and rollback.
 
 WHY/DIR:  S-FRAC v2 is built, merged and pinned in the pipeline;
           `kernel/sizing.py:204` (renquant-pipeline) says there is no
@@ -29,7 +37,12 @@ EVIDENCE: artifact: `RenQuant/logs/daily_104/2026-07-*.log`,
                     `tests/test_strategy_configs.py`,
                     `renquant-orchestrator doc/design/2026-07-07-104-105-cash-drag-resolution.md`,
                     `renquant-strategy-104 doc/progress/2026-07-12-one-share-floor-enablement.md`
-                    — all READ-ONLY.
+                    (A-3's contract), and, for §5, commits `eba5a36`
+                    (2026-07-10 operator enablement decision) and `2d2f43e`
+                    (the staged-but-unmerged 2026-07-12
+                    `doc/progress/2026-07-12-fractional-shares-enablement.md`
+                    — a DIFFERENT document from A-3's, on branch
+                    `config/operator-enablement-batch-1`) — all READ-ONLY.
   prod or exp:      PROPOSAL. No production config, code, or artifact
                     changed.
   existing data:    Yes, measured this session
@@ -70,6 +83,22 @@ THE HONEST PART:
           session]. This document does not resolve that sequencing
           question; it surfaces it for the operator (design doc §4).
 
+          Independent of that sequencing question: an operator risk
+          decision to enable fractional shares specifically was already
+          recorded once, 2026-07-10 (`eba5a36`). Review over several rounds
+          walked the flag back to OFF and staged a full enablement contract
+          instead — stop-coverage and execution-liveness invariants, a
+          gross fractional-notional cap, an 8-metric monitoring contract,
+          named kill/rollback triggers — because Alpaca gives fractional
+          orders no GTC stop, so a dead evaluator process is the actual
+          failure mode. That branch (`config/operator-enablement-batch-1`)
+          was never merged to `main`; the contract is orphaned, not
+          superseded, and neither this document's nor the original's risk
+          list mentioned the failure mode it exists to bound. One of its 9
+          prerequisites was spot-checked this session (pager SLA,
+          `renquant-orchestrator#481`) and remains "dark"; the other six
+          were not re-checked (design doc §5).
+
 CORRECTIONS (from the orchestrator-repo original, codex review
 `hallovorld/renquant-orchestrator#607`):
   1. **"`execution.fractional_shares` is absent entirely"** — false when
@@ -88,10 +117,14 @@ CORRECTIONS (from the orchestrator-repo original, codex review
 
 NEXT:     Operator sign-off is the gate, and per §4 of the design doc the
           operator's decision also covers the sequencing question (jump
-          Phase 2→3, or finish A-3 first). Before enablement regardless of
-          that answer: re-validate the already-chosen `min_notional` /
+          Phase 2→3, or finish A-3 first). Independent of that answer, per
+          §5, the 2026-07-12 contract's 9 prerequisites must be re-checked
+          row by row before sign-off — this proposal's own checklist is not
+          a substitute for it. Before enablement regardless of both
+          answers: re-validate the already-chosen `min_notional` /
           `min_fractional_trade_notional` against current book size, run a
           full-funnel sim with the flag on vs off, and confirm exit/tax-lot
           paths accept fractional quantities. None of that work is done in
           this pass — this pass only corrected the proposal's factual
-          premises and re-homed it to the owning repo.
+          premises, surfaced the sequencing and safety-contract gates, and
+          re-homed it to the owning repo.

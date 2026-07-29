@@ -7,7 +7,11 @@ is a live capital gate and needs explicit sign-off.
 the proposal edits strategy-104-owned policy and belongs in this repo, not the
 orchestrator. Re-homing here also surfaced that two of the original doc's
 central claims were measured against the wrong config copy — corrected below
-(§1, §3) rather than carried forward silently.
+(§1, §3) rather than carried forward silently. It also surfaced two
+independent gates the original document never mentioned: an already-agreed
+execution-order RFC that sequences this behind a cheaper alternative (§4),
+and a more rigorous, already-reviewed safety contract for this exact change
+that was staged and then never merged (§5).
 
 ---
 
@@ -155,7 +159,64 @@ ahead of Phase 2, with the measured evidence in §2–3 as that justification, o
 (b) finish A-3's already-built, already-cheaper enablement first and revisit
 fractional shares only if a residual gap remains, per the original plan.
 
-## 5. Why the risk is lower than it looks
+## 5. A more rigorous safety contract already exists for THIS exact change — unmerged
+
+**This is not a first-time question either.** Separately from the §4
+sequencing RFC, an operator risk decision to enable fractional shares
+specifically was already recorded once, 2026-07-10
+`[VERIFIED — renquant-strategy-104 commit eba5a36, "Recorded operator risk
+decision 2026-07-10 (GOAL-6, explicit override of the stage-3
+shadow/pager sequence)"]`. Review over several rounds (`fix(enable):
+address 3 safety/design items`, `fix(enable): tighten... per review`, "R4
+— split coverage vs liveness") walked the flag back to OFF and staged a
+full enablement contract instead: `doc/progress/2026-07-12-fractional-
+shares-enablement.md` — a DIFFERENT document from A-3's own
+`2026-07-12-one-share-floor-enablement.md` cited in §4 — on branch
+`config/operator-enablement-batch-1` at commit `2d2f43e` (PR
+renquant-strategy-104#56, merged into that branch, **not `main`**; no
+follow-up PR ever landed the branch's final state into main, so this
+contract is orphaned, not superseded) `[VERIFIED — this session, git
+log/show against the live origin remote]`.
+
+**That contract identifies a risk this document's §7 does not mention at
+all: Alpaca does not support GTC stops on fractional orders (DAY-only).**
+A software-loop-resident stop is therefore the ONLY protection for a
+fractional position, and that protection dies with the process. The
+2026-07-12 contract formalizes this as two invariants — **state coverage**
+(`fractional_stop_coverage`: every fractional position has an armed,
+fresh stop registry entry, hard-gated to 1.0 before any new fractional buy)
+and **execution liveness** (a measured chain: last heartbeat → stale
+detection → page → ack → recovery, since coverage stays 1.0 even while the
+evaluator is dead) — plus a **gross fractional notional cap** as the actual
+bound on at-risk capital during a dead-process window, an 8-metric daily
+monitoring contract with fail-closed missing-data handling, and named
+kill/rollback triggers.
+
+**Its own prerequisite table, unresolved as of 2026-07-12** (not
+re-verified line-by-line this session — spot-checked one row):
+
+| Prerequisite | Status (2026-07-12) |
+|---|---|
+| Broker fractional contract (paper-trading round-trip evidence) | Not implemented |
+| Stage-3 shadow packet (fractional in shadow mode + monitoring) | Not started |
+| Software stops pager SLA | Merged, but "dark template" |
+| Dead-process at-risk-notional bound | Not measured |
+| Fractional stop coverage invariant | Not implemented |
+| Fractional gross notional cap enforced | Not implemented |
+| Execution liveness chain demonstrated | Not measured |
+
+Spot-check, this session: the pager package the table cites
+(`renquant-orchestrator#481`) is merged, and its OWN title still reads
+"staged dark" `[VERIFIED — gh pr view 481]` — consistent with the table's
+2026-07-12 status, not evidence it has since been wired live. The other six
+rows were not re-checked. **This is a SECOND, independent gate from §4's
+sequencing question — resolving §4 in favor of proceeding does not resolve
+this one.** Even if the operator decides fractional shares may jump ahead
+of A-3, this proposal must not be signed off against its own §7 checklist
+alone without first confirming, row by row, whether the 2026-07-12
+contract's prerequisites now hold.
+
+## 6. Why the risk is lower than it looks — for the failure modes THIS document covers, excluding §5
 
 - The **broker-side guard is the authority**, not this config.
   `sizing.py:266-271` (renquant-pipeline) documents sizing-time eligibility as
@@ -172,7 +233,7 @@ fractional shares only if a residual gap remains, per the original plan.
 - The pipeline carries `tests/test_fractional_sizing_stage2.py` (15 tests)
   covering the whole-share/fractional split.
 
-## 6. What could go wrong
+## 7. What could go wrong
 
 1. **Dust orders.** `min_notional=1.0` and `min_fractional_trade_notional=25.0`
    are already chosen (§1); this revision removes "choose deliberately" from
@@ -188,10 +249,14 @@ fractional shares only if a residual gap remains, per the original plan.
 4. **Settlement / buying-power interaction** with `t2_settlement_days` and
    `buying_power_mode` is unexamined here.
 
-## 7. What must happen before this is switched on
+## 8. What must happen before this is switched on
 
 - [ ] **Resolve the §4 sequencing question** — a fresh active-path
       justification to go ahead of A-3, or defer to A-3's enablement first.
+- [ ] **Re-check the §5 contract's 9-row prerequisite table against current
+      state, row by row** — independent of how §4 resolves. One row was
+      spot-checked this session (pager SLA, still "dark"); the other six
+      were not.
 - [ ] Re-validate `min_notional=1.0` / `min_fractional_trade_notional=25.0`
       against current book size and price levels (already chosen 2026-07-07;
       not re-confirmed by this document).
@@ -205,13 +270,13 @@ fractional shares only if a residual gap remains, per the original plan.
 - [ ] Confirm exit/tax-lot paths accept fractional quantities (risk 3).
 - [ ] Operator sign-off, because this changes what reaches the broker.
 
-## 8. Rollback
+## 9. Rollback
 
 Set `execution.fractional_shares.enabled` back to `false`. The whole-share
 path is unchanged and untouched by this proposal, so reverting restores
 exactly today's behaviour. No artifact, model, or pin is involved.
 
-## 9. Provenance
+## 10. Provenance
 
 Figures tagged `[VERIFIED]` were read this session from
 `RenQuant/logs/daily_104/2026-07-*.log`, this repo's `configs/strategy_config
