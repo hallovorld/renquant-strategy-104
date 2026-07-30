@@ -200,29 +200,45 @@ bound on at-risk capital during a dead-process window, an 8-metric daily
 monitoring contract with fail-closed missing-data handling, and named
 kill/rollback triggers.
 
-**Its own prerequisite table, all 9 rows, unresolved as of 2026-07-12**
-(not re-verified line-by-line this session — spot-checked one row)
-`[VERIFIED — read 2d2f43e:doc/progress/2026-07-12-fractional-shares-enablement.md
-this session; the previous revision of this table dropped two of the nine
-rows]`:
+**Its own prerequisite table, all 9 rows, unresolved as of 2026-07-12.**
+Reproduced **complete, with the `Owner` column**, and checked row-for-row against
+the source this session — all 9 rows and their statuses match the original in the
+same order `[VERIFIED — `git show
+2d2f43e:doc/progress/2026-07-12-fractional-shares-enablement.md`, lines 17-27,
+compared row by row this session]`. An earlier revision of this document dropped
+two of the nine rows, and **both of the dropped rows were operator-owned** — which
+is exactly why the omission mattered: it removed the operator's own sign-off items
+from the sign-off surface. The `Owner` column is restored so that is visible
+rather than inferable.
 
-| Prerequisite | Status (2026-07-12) |
-|---|---|
-| Broker fractional contract (paper-trading round-trip evidence) | Not implemented |
-| Broker-side GTC stop limitation documented and accepted | Assumption only |
-| Stage-3 shadow packet (fractional in shadow mode + monitoring) | Not started |
-| Software stops pager SLA | Merged, but "dark template" |
-| Dead-process at-risk-notional bound | Not measured |
-| Fractional stop coverage invariant | Not implemented |
-| Fractional gross notional cap enforced | Not implemented |
-| Execution liveness chain demonstrated | Not measured |
-| Explicit signed-off risk decision with evidence | Pending above |
+| Prerequisite | Owner | Status (2026-07-12) |
+|---|---|---|
+| Broker fractional contract (paper-trading round-trip evidence) | renquant-execution | Not implemented |
+| **Broker-side GTC stop limitation documented and accepted** | **operator** | Assumption only |
+| Stage-3 shadow packet (fractional in shadow mode + monitoring) | orchestrator | Not started |
+| Software stops pager SLA | orchestrator PR #481 | Merged (dark template) |
+| Dead-process at-risk-notional bound | orchestrator | Not measured |
+| Fractional stop coverage invariant | orchestrator + execution | Not implemented |
+| Fractional gross notional cap enforced | orchestrator + pipeline | Not implemented |
+| Execution liveness chain demonstrated | orchestrator | Not measured |
+| **Explicit signed-off risk decision with evidence** | **operator** | Pending above |
 
-Spot-check, this session: the pager package the table cites
+**The two operator-owned rows are in bold**, and neither can be discharged by an
+agent: one is an acceptance of a broker limitation, the other is the signed risk
+decision itself. So the row-by-row re-check this section demands cannot complete
+without the operator, independently of everything else in this document.
+
+Spot-check of current status, this session: the pager package the table cites
 (`renquant-orchestrator#481`) is merged, and its OWN title still reads
 "staged dark" `[VERIFIED — gh pr view 481]` — consistent with the table's
-2026-07-12 status, not evidence it has since been wired live. The other six
-rows were not re-checked. **This is a SECOND, independent gate from §4's
+2026-07-12 status, not evidence it has since been wired live.
+
+**What is and is not verified here, stated precisely.** The *table's fidelity to
+its source* is fully verified (all 9 rows, this session). Whether each
+prerequisite is *still* unresolved **today** is NOT: only the pager row was
+re-checked, and the other eight rows carry their 2026-07-12 status unchanged. The
+row-by-row re-check remains outstanding work, not a completed check — that
+distinction is the whole point of this section. **This is a SECOND, independent gate from §4's
 sequencing question — resolving §4 in favor of proceeding does not resolve
 this one.** Even if the operator decides fractional shares may jump ahead
 of A-3, this proposal must not be signed off against its own §7 checklist
