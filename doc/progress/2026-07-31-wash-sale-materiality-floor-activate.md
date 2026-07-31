@@ -70,3 +70,54 @@ optimisation — it converts a data gap into a capital gate. Same separate filin
 
 Delete the six inserted lines. The resolver returns `0.0` and behaviour is bit-identical
 to today. No migration, no state.
+
+---
+
+## Review round 1 — DE-SCOPED: the live gate is no longer touched
+
+Codex: *"this is a live capital-gate policy change, but the $1 activation is justified
+only by seven realized-cost blocks from one 2026-07-28 session … it is still a chosen
+policy threshold."* Accepted, and the PR is re-scoped rather than argued.
+
+**`wash_sale_min_material_npv` is removed from `strategy_config.json` and
+`strategy_config.golden.json`.** The live gate keeps the resolver's
+`WASH_SALE_MIN_MATERIAL_NPV_LEGACY = 0.0`, i.e. **no behaviour change to live trading
+in this PR at all.** The four shadow configs keep `1.00`.
+
+Golden moves with live deliberately: `scripts/daily_104.sh` uses
+`strategy_config.golden.json` as the drift reference for the live config, so setting
+the key in one and not the other would fire the drift WARN on every run
+`[VERIFIED — daily_104.sh:222, this session]`. Checked that this introduces no new
+divergence: live and golden differ on exactly the same six keys before and after
+(`sizing`, `walkforward`, `sleeve`, `execution`, `deployment_governor`, and one dated
+note) `[VERIFIED — key-by-key diff of both files at origin/main and on this branch]`.
+
+**Why shadow-only is the right shape rather than a retreat.** The evidence codex asks
+for — released blocks and retained tax exposure across multiple completed sessions —
+does not exist yet and cannot be manufactured from the one session that motivated the
+threshold. The shadow lanes execute the same selection path against real candidates
+and place no orders, so activating there **produces exactly that evidence** while the
+live gate stays at the legacy floor. This PR stops being "turn it on" and becomes
+"start generating the record that would justify turning it on".
+
+**Promotion criteria, stated now so they cannot be chosen later.** Before
+`wash_sale_min_material_npv` is set in `strategy_config.json`:
+
+1. **≥ 4 completed shadow sessions** on distinct trading days, reporting per session
+   the blocks released by the floor and the realised-loss NPV each carried;
+2. an **end-to-end consumer check** that the pinned strategy config is the one the
+   pipeline actually read and that the gate value took effect — not that the key is
+   present in a file, which is what this PR would otherwise have proved;
+3. the released set contains **no block whose NPV exceeds the floor** — a floor that
+   releases something above its own threshold is not the mechanism it claims to be;
+4. a **rollback trigger** written before activation: if any session releases a block
+   later found to breach §1091 wash-sale treatment, the key is removed from
+   `strategy_config.json` and `strategy_config.golden.json` in one commit, and the
+   deployment pin reverts to the preceding strategy pin.
+
+**Rollback for this PR as it now stands:** revert the four shadow config lines. No live
+surface is touched, so there is nothing else to undo.
+
+**What is still true and unchanged:** `renquant-pipeline#223`'s "no cost floor
+anywhere" is stale — the floor exists and is hardened; all six configs left it unset so
+it was dark. This PR lights it in shadow only.
