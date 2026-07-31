@@ -913,8 +913,23 @@ def test_shadow_blend_profile_semantic_pins() -> None:
     assert "shadow_models" not in panel
     assert "shadow_experiment" not in panel
 
+    # 6. wash_sale_min_material_npv is an INTENTIONAL shadow-only delta.
+    #
+    # The materiality floor is lit at 1.00 on every shadow profile and left UNSET on
+    # live and golden, where the pipeline resolver falls back to
+    # WASH_SALE_MIN_MATERIAL_NPV_LEGACY = 0.0. That asymmetry is the point of the
+    # de-scope on strategy#73: the shadow lanes run the same selection path and place
+    # no orders, so they generate the multi-session released-block evidence that a
+    # live activation would need, while live keeps its existing behaviour.
+    #
+    # Named here rather than normalised silently: this contract exists to make every
+    # blend-vs-prod difference deliberate, and an unlisted delta that merely happens
+    # to be popped is indistinguishable from one nobody noticed.
+    assert blend["wash_sale_min_material_npv"] == 1.00
+    assert "wash_sale_min_material_npv" not in prod
+
     # Everything else: semantically identical to production (the profile is
-    # "prod minus submission", not a fork). Normalize away the five deltas +
+    # "prod minus submission", not a fork). Normalize away the six deltas +
     # provenance notes, then require equality.
     prod_norm = _strip_provenance(prod)
     blend_norm = _strip_provenance(blend)
@@ -927,6 +942,7 @@ def test_shadow_blend_profile_semantic_pins() -> None:
         p["global_calibration"].pop("enabled", None)
         p["conviction_gate"].pop("enabled", None)
         cfg["ranking"]["kelly_sizing"].pop("enabled", None)
+        cfg.pop("wash_sale_min_material_npv", None)
     assert blend_norm == prod_norm
 
 
@@ -940,3 +956,55 @@ def _strip_provenance(value):
     if isinstance(value, list):
         return [_strip_provenance(v) for v in value]
     return value
+
+
+# --- wash-sale materiality floor: SHADOW-only until it earns live (strategy#73) ---
+#
+# renquant-pipeline resolves this key with WASH_SALE_MIN_MATERIAL_NPV_LEGACY = 0.0
+# when it is absent, and its own docstring says "this repo never substitutes a policy
+# value of its own". So UNSET is not an oversight here — it is the live gate keeping
+# pre-existing behaviour while the shadow lanes generate the evidence a live
+# activation would need.
+
+SHADOW_PROFILES = (
+    "strategy_config.shadow.json",
+    "strategy_config.shadow_a.json",
+    "strategy_config.shadow_b.json",
+    "strategy_config.shadow_blend.json",
+)
+LIVE_PROFILES = ("strategy_config.json", "strategy_config.golden.json")
+WASH_SALE_FLOOR_KEY = "wash_sale_min_material_npv"
+
+
+def test_every_shadow_profile_lights_the_wash_sale_floor() -> None:
+    """All four, not "the ones I remembered" — a floor lit on three of four lanes
+    produces evidence that does not describe the fourth."""
+    for name in SHADOW_PROFILES:
+        cfg = _load(name)
+        assert cfg.get(WASH_SALE_FLOOR_KEY) == 1.00, (
+            f"{name} does not carry the shadow materiality floor")
+
+
+def test_live_and_golden_leave_the_floor_UNSET() -> None:
+    """The de-scope, asserted rather than trusted to a diff.
+
+    Setting this key in the live config is a capital-gate change; strategy#73 was
+    reviewed down to shadow-only precisely because seven cost blocks from one session
+    cannot justify it. If it ever appears here, that decision has been reversed —
+    which must happen deliberately, against the promotion criteria in the progress
+    doc, not by a config edit that nothing objects to.
+    """
+    for name in LIVE_PROFILES:
+        cfg = _load(name)
+        assert WASH_SALE_FLOOR_KEY not in cfg, (
+            f"{name} sets {WASH_SALE_FLOOR_KEY} — that is a LIVE capital-gate "
+            f"activation and this PR is scoped to shadow only")
+
+
+def test_live_and_golden_agree_about_the_floor() -> None:
+    """`scripts/daily_104.sh` uses golden as the drift reference for the live config,
+    so lighting the floor in one and not the other fires the drift WARN every run.
+    They must move together in either direction."""
+    live, golden = _load("strategy_config.json"), _load("strategy_config.golden.json")
+    assert (WASH_SALE_FLOOR_KEY in live) == (WASH_SALE_FLOOR_KEY in golden)
+    assert live.get(WASH_SALE_FLOOR_KEY) == golden.get(WASH_SALE_FLOOR_KEY)

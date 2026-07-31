@@ -156,6 +156,7 @@
  "model_staleness_days": 60,
  "sharpe_floor": 1,
  "wash_sale_days": 30,
+ "wash_sale_min_material_npv": 1.00,
  "min_hold_days": 5,
  "model_sell": {
   "panel_veto": {
