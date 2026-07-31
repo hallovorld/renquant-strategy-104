@@ -121,3 +121,34 @@ surface is touched, so there is nothing else to undo.
 **What is still true and unchanged:** `renquant-pipeline#223`'s "no cost floor
 anywhere" is stale — the floor exists and is hardened; all six configs left it unset so
 it was dark. This PR lights it in shadow only.
+
+## Review round 2 — the branch did not pass its own semantic-pin contract
+
+Codex accepted the shadow-only scope, then found the branch failing
+`test_shadow_blend_profile_semantic_pins`: the blend profile is contracted as
+*"prod minus submission, not a fork"*, and `wash_sale_min_material_npv` was an
+unregistered delta between blend and prod.
+
+**Registered as an intentional shadow-only delta**, asserted rather than normalised
+silently — `blend[key] == 1.00` and `key not in prod` — before the normalisation step.
+This contract exists to make every blend-vs-prod difference deliberate, and **an
+unlisted delta that merely happens to be popped is indistinguishable from one nobody
+noticed.**
+
+Three focused assertions added:
+
+* **all four** shadow profiles carry `1.00` — not "the ones I remembered". A floor lit
+  on three of four lanes produces evidence that does not describe the fourth;
+* live and golden leave it **UNSET**, so a future re-activation must happen against the
+  promotion criteria rather than by a config edit nothing objects to;
+* live and golden **agree** about it in either direction, because `daily_104.sh` uses
+  golden as the drift reference and lighting one alone fires the drift WARN every run.
+
+`[VERIFIED — this session]` 35 pass. Load-bearing confirmed by injection: re-activating
+the key in `strategy_config.json` fails **2** tests (the UNSET guard and the
+live/golden agreement guard); removing it from one shadow lane fails **1**; both pass
+again on restore.
+
+**Unchanged:** the end-to-end consumer check stays a *promotion prerequisite*, not
+something this config-only PR claims today. Nothing here shows the pinned config was
+the one the pipeline read.
