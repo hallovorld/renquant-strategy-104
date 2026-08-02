@@ -6,7 +6,8 @@ WHAT: doc/design/2026-08-02-wash-sale-materiality-floor.md — the policy knob
 (`risk.wash_sale.materiality_floor_usd`, default 0.0 = today's behavior), the
 estimate contract (same lot engine incl. same-event netting; conservative
 ceil; unavailable → block stands), the full AC6 governed-override triplet
-(reviewed-PR-only identity; $50 design ceiling; per-decision run-bundle stamp
+(reviewed-PR-only identity; $50 design ceiling
+`[ASSUMED — design ceiling proposal]`; per-decision run-bundle stamp
 with config fingerprint), and the 4-step rollout order.
 WHY/DIR: measured on the live book — the mass block zeroed buys on 3 of 5
 sessions protecting ~$15 total (one instance $0.04) while $6,868 sat idle
@@ -18,7 +19,8 @@ EVIDENCE:
   prod or exp:   exp — design doc only; no config file touched in this PR
   existing data: the 3-of-5-sessions / ~$15 / $0.04 / $6,868 measurements are
                  pipeline#223's and the deployment-blockers record's, cited
-                 not re-measured `[早前实测]`
+                 not re-measured
+                 `[VERIFIED — prior work, pipeline#223 / orch deployment-blockers record]`
   best-known?:   yes — first materiality proposal in the policy repo; the only
                  prior knob is wash_sale_days=30
   scope:         docs-only here; enforcement + invariance proof are
@@ -26,4 +28,4 @@ EVIDENCE:
                  non-zero floor config PR
 NEXT: review here → pipeline#223 implementation (floor=0 A/B invariance +
 estimator tests) → operator pin batch → operator floor-setting config PR
-(proposed start $5).
+(proposed start $5 `[ASSUMED — proposed initial operator floor]`).

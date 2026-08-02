@@ -40,7 +40,8 @@ The comparison quantity is the **estimated foregone tax benefit**:
 - `disallowed_loss_usd` uses the SAME lot engine the pipeline's tax logic
   uses, including same-event loss netting — the disposed-lot netting defect
   class must not be inherited by the estimator (a known past bug family);
-- `assumed_marginal_rate` is a config constant (propose 0.40 conservative);
+- `assumed_marginal_rate` is a config constant (propose 0.40 conservative
+  `[ASSUMED — proposed conservative marginal-rate constant]`);
 - rounding is **UP** (ceil to the cent), so the floor systematically
   UNDER-fires: when in doubt, the block stands.
 - If the estimate is UNAVAILABLE for a name (missing lot data, engine error),
@@ -55,7 +56,8 @@ The comparison quantity is the **estimated foregone tax benefit**:
 - **Expiry:** the floor is a standing policy, not a containment — but every
   per-decision stamp carries the config fingerprint, so any floor value is
   attributable to the exact reviewed config that set it. Raising the floor
-  above a hard ceiling (propose $50) requires amending THIS design first —
+  above a hard ceiling (propose $50 `[ASSUMED — design ceiling proposal]`)
+  requires amending THIS design first —
   the pipeline consumer refuses values above the ceiling as a contract
   violation.
 - **Binding:** each waived block writes a decision-trace record
@@ -79,4 +81,5 @@ The comparison quantity is the **estimated foregone tax benefit**:
 2. pipeline#223 implementation consuming the knob (floor=0 invariance proof +
    estimator unit tests incl. the netting case + the unavailable→block case).
 3. Pin advances (both repos) — operator batch.
-4. Operator sets a floor (propose starting at $5) by reviewed config PR.
+4. Operator sets a floor (propose starting at $5
+   `[ASSUMED — proposed initial operator floor]`) by reviewed config PR.
