@@ -200,8 +200,10 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
 
     # orch#741 retirement: the served hf_patchtst shadow lane is GONE from
     # shadow_models (in prod AND golden), the retirement narrative key exists
-    # in both, and prod/golden stay consistent. The clf blend leg remains the
-    # only shadow model.
+    # in both, and prod/golden stay consistent. Two lanes remain: the clf
+    # blend leg (live) and the momentum lane (GOAL-7 slice 4 — PENDING the
+    # slice-5 grant batch, see PENDING_FIRST_ARTIFACT at the end of this
+    # file).
     for cfg_panel in (panel, golden_panel):
         assert all(
             m["name"] != "hf_patchtst_pt07_strict_seed44_previous_primary"
@@ -229,6 +231,13 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
             "_2026_07_26_operator_activation": "operator-directed shadow-slot activation; executed by the claude agent under explicit in-session operator delegation (2026-07-26) after the operator-run command block failed twice to terminal paste mangling; see PR body and doc/progress/2026-07-26-operator-delegated-activation.md for the verbatim grant",
             "_2026_07_27_restamp": "artifact re-stamped with effective_train_cutoff_date=2026-04-28 (model#83; missing_train_cutoff health fix); booster byte-identical, predictions identical, config_fingerprint unchanged",
             "_2026_07_28_recipe_restamp": "adds provenance_schema_version/recipe_id/required_axis_fields (walkforward_only_v1, common#36+model#84); booster/predictions/fp unchanged",
+        },
+        {
+            "name": "momentum_residual_v0_shadow",
+            "kind": "momentum_residual",
+            "artifact_path": "artifacts/momentum/momentum_artifact_ledger.jsonl",
+            "_2026_08_02_momentum_shadow_lane": "TRADE slice of the standalone momentum pipeline — design model#195 (doc/design/2026-08-02-momentum-pipeline-architecture.md §3), build-order amendment model#197, weekly TRAIN job surface orch#757. The job publishes artifacts/momentum/<cutoff>/momentum_residual_v0.json (artifact kind momentum_residual_v0, one dated artifact per weekly cutoff) PLUS the append-only digest-chained ledger this artifact_path pins — the one cutoff-stable file in the publish set, strategy_dir-relative under the same canonical resolver base as the blend leg's artifacts/shadow path. Serving-handler contract (config kind momentum_residual; pipeline-side registration pending): read the verified ledger tail row, load the dated artifact it names beside the ledger, verify its self-carried content_sha256 — each week's artifact serves with zero weekly config churn and the ledger chain transitively pins every served artifact. Shadow = data collection, no verdict claimed; promotion via the standard gates (WF lineage + freshness + operator sign-off).",
+            "_2026_08_02_pending_first_artifact": "PENDING the slice-5 grant batch: this path does NOT resolve until the batch's weekly job publishes the first artifact + ledger — which is exactly why this entry merges only inside that batch (orch#757 grant checklist, ordered per model#197: job installed -> first artifact published -> THIS entry merged -> pin advance). Bounded guard: tests/test_strategy_configs.py PENDING_FIRST_ARTIFACT names exactly this entry (the launchd-manifest PENDING_INSTALL idiom); the batch's config-merge step triggers the follow-up PR that deletes this key and shrinks that set together.",
         },
     ]
     assert (
@@ -1023,3 +1032,60 @@ def test_live_and_golden_agree_about_the_floor() -> None:
     live, golden = _load("strategy_config.json"), _load("strategy_config.golden.json")
     assert (WASH_SALE_FLOOR_KEY in live) == (WASH_SALE_FLOOR_KEY in golden)
     assert live.get(WASH_SALE_FLOOR_KEY) == golden.get(WASH_SALE_FLOOR_KEY)
+
+
+# --- momentum shadow lane (GOAL-7 slice 4): PENDING the slice-5 grant batch ---
+#
+# The momentum entry's artifact_path points at the weekly TRAIN job's
+# append-only artifact ledger (the orch#757 publish set; serving-path
+# convention fixed by model#197). Until the grant batch installs the job and
+# the first artifact + ledger are published, that path does NOT resolve
+# anywhere — which is exactly why the slice-4 config PR merges only inside the
+# batch (order: job installed -> first artifact published -> config merged ->
+# pin advance). No test here resolves the path against the operator's disk
+# (the static resolve gate is umbrella CI at pin-advance time; a disk-reading
+# test in this repo would be red or vacuously green per machine). Instead this
+# named set BOUNDS the declared pending state to exactly the entries that
+# carry it — the launchd-manifest PENDING_INSTALL idiom: a second pending
+# entry cannot ride in unnamed, and the post-batch follow-up PR that deletes
+# the _2026_08_02_pending_first_artifact key must shrink this set in the same
+# change.
+PENDING_FIRST_ARTIFACT = {"momentum_residual_v0_shadow"}
+MOMENTUM_SHADOW_LEDGER_PATH = "artifacts/momentum/momentum_artifact_ledger.jsonl"
+
+
+def test_pending_first_artifact_guard_names_exactly_the_momentum_entry() -> None:
+    for name in LIVE_PROFILES:
+        panel = _load(name)["ranking"]["panel_scoring"]
+        pending = {
+            m["name"]
+            for m in panel.get("shadow_models") or []
+            if any(str(k).endswith("_pending_first_artifact") for k in m)
+        }
+        assert pending == PENDING_FIRST_ARTIFACT, (
+            f"{name}: shadow entries declaring a pending-first-artifact state "
+            f"{sorted(pending)} != the bounded named set "
+            f"{sorted(PENDING_FIRST_ARTIFACT)} — either an unnamed pending "
+            f"entry rode in, or the grant batch landed and the pending key "
+            f"must be deleted together with this set"
+        )
+
+
+def test_momentum_shadow_entry_pins_the_ledger_path_with_no_repo_escape() -> None:
+    """The `../../` incident class, asserted at the source: the momentum
+    artifact_path is repo-relative (canonical resolver: strategy_dir-first,
+    same base the blend leg resolves under) and contains no `..` escape."""
+    for name in LIVE_PROFILES:
+        panel = _load(name)["ranking"]["panel_scoring"]
+        matches = [
+            m
+            for m in panel.get("shadow_models") or []
+            if m.get("name") == "momentum_residual_v0_shadow"
+        ]
+        assert len(matches) == 1, f"{name}: momentum shadow entry missing"
+        entry = matches[0]
+        assert entry["kind"] == "momentum_residual"
+        assert entry["artifact_path"] == MOMENTUM_SHADOW_LEDGER_PATH
+        p = Path(entry["artifact_path"])
+        assert not p.is_absolute()
+        assert ".." not in p.parts

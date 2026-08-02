@@ -1030,6 +1030,13 @@
           "_2026_07_26_operator_activation": "operator-directed shadow-slot activation; executed by the claude agent under explicit in-session operator delegation (2026-07-26) after the operator-run command block failed twice to terminal paste mangling; see PR body and doc/progress/2026-07-26-operator-delegated-activation.md for the verbatim grant",
           "_2026_07_27_restamp": "artifact re-stamped with effective_train_cutoff_date=2026-04-28 (model#83; missing_train_cutoff health fix); booster byte-identical, predictions identical, config_fingerprint unchanged",
           "_2026_07_28_recipe_restamp": "adds provenance_schema_version/recipe_id/required_axis_fields (walkforward_only_v1, common#36+model#84); booster/predictions/fp unchanged"
+        },
+        {
+          "name": "momentum_residual_v0_shadow",
+          "kind": "momentum_residual",
+          "artifact_path": "artifacts/momentum/momentum_artifact_ledger.jsonl",
+          "_2026_08_02_momentum_shadow_lane": "TRADE slice of the standalone momentum pipeline — design model#195 (doc/design/2026-08-02-momentum-pipeline-architecture.md §3), build-order amendment model#197, weekly TRAIN job surface orch#757. The job publishes artifacts/momentum/<cutoff>/momentum_residual_v0.json (artifact kind momentum_residual_v0, one dated artifact per weekly cutoff) PLUS the append-only digest-chained ledger this artifact_path pins — the one cutoff-stable file in the publish set, strategy_dir-relative under the same canonical resolver base as the blend leg's artifacts/shadow path. Serving-handler contract (config kind momentum_residual; pipeline-side registration pending): read the verified ledger tail row, load the dated artifact it names beside the ledger, verify its self-carried content_sha256 — each week's artifact serves with zero weekly config churn and the ledger chain transitively pins every served artifact. Shadow = data collection, no verdict claimed; promotion via the standard gates (WF lineage + freshness + operator sign-off).",
+          "_2026_08_02_pending_first_artifact": "PENDING the slice-5 grant batch: this path does NOT resolve until the batch's weekly job publishes the first artifact + ledger — which is exactly why this entry merges only inside that batch (orch#757 grant checklist, ordered per model#197: job installed -> first artifact published -> THIS entry merged -> pin advance). Bounded guard: tests/test_strategy_configs.py PENDING_FIRST_ARTIFACT names exactly this entry (the launchd-manifest PENDING_INSTALL idiom); the batch's config-merge step triggers the follow-up PR that deletes this key and shrinks that set together."
         }
       ],
       "shadow_experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
