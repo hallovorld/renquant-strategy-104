@@ -237,7 +237,6 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
             "kind": "momentum_residual",
             "artifact_path": "artifacts/momentum/momentum_artifact_ledger.jsonl",
             "_2026_08_02_momentum_shadow_lane": "TRADE slice of the standalone momentum pipeline — design model#195 (doc/design/2026-08-02-momentum-pipeline-architecture.md §3), build-order amendment model#197, weekly TRAIN job surface orch#757. The job publishes artifacts/momentum/<cutoff>/momentum_residual_v0.json (artifact kind momentum_residual_v0, one dated artifact per weekly cutoff) PLUS the append-only digest-chained ledger this artifact_path pins — the one cutoff-stable file in the publish set, strategy_dir-relative under the same canonical resolver base as the blend leg's artifacts/shadow path. Serving-handler contract (config kind momentum_residual; pipeline-side registration pending): read the verified ledger tail row, load the dated artifact it names beside the ledger, verify its self-carried content_sha256 — each week's artifact serves with zero weekly config churn and the ledger chain transitively pins every served artifact. Shadow = data collection, no verdict claimed; promotion via the standard gates (WF lineage + freshness + operator sign-off).",
-            "_2026_08_02_pending_first_artifact": "PENDING the slice-5 grant batch: this path does NOT resolve until the batch's weekly job publishes the first artifact + ledger — which is exactly why this entry merges only inside that batch (orch#757 grant checklist, ordered per model#197: job installed -> first artifact published -> THIS entry merged -> pin advance). Bounded guard: tests/test_strategy_configs.py PENDING_FIRST_ARTIFACT names exactly this entry (the launchd-manifest PENDING_INSTALL idiom); the batch's config-merge step triggers the follow-up PR that deletes this key and shrinks that set together.",
         },
     ]
     assert (
@@ -1049,8 +1048,11 @@ def test_live_and_golden_agree_about_the_floor() -> None:
 # carry it — the launchd-manifest PENDING_INSTALL idiom: a second pending
 # entry cannot ride in unnamed, and the post-batch follow-up PR that deletes
 # the _2026_08_02_pending_first_artifact key must shrink this set in the same
-# change.
-PENDING_FIRST_ARTIFACT = {"momentum_residual_v0_shadow"}
+# change. 2026-08-02: the batch LANDED (first artifact + genesis ledger row
+# published, entry merged in #77, pin advanced in RenQuant#555) and the
+# momentum key was deleted with this shrink — the set is EMPTY until a future
+# lane declares a pending state by name.
+PENDING_FIRST_ARTIFACT: set[str] = set()
 MOMENTUM_SHADOW_LEDGER_PATH = "artifacts/momentum/momentum_artifact_ledger.jsonl"
 
 
