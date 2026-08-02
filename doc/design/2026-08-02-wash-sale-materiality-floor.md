@@ -6,15 +6,27 @@ default, its enablement contract); renquant-pipeline owns the enforcement
 pipeline consumer merges with a floor=0 behavior-invariance proof, (c) the
 operator sets a non-zero floor by reviewed config PR, (d) pins advance.
 
-## The measured problem `[VERIFIED — orch task record / pipeline#223, 2026-07-29..31]`
+## The problem this design addresses (mechanism gap, not a dollar claim)
 
-`wash_sale_mass_block` zeroed the ENTIRE buy list on 3 of 5 sessions,
-protecting roughly **$15 of deferred tax across 8 names** — one instance
-protected **$0.04** — while **$6,868 of cash sat idle** in a ~$10.5k book.
-The only existing knob is `wash_sale_days=30`; there is no notion of how much
-tax a block is worth. A hard gate whose entire protected value is smaller than
-a day of cash drag is the 07-16 incident shape in miniature: protection with
-no proportionality and no governed override.
+This design stands on a MECHANISM gap that is verifiable from the code
+surface alone: `wash_sale_mass_block` is a hard buy gate whose ONLY knob is
+`wash_sale_days=30` — it has **no notion of how much tax a block is worth**,
+no proportionality, and no governed override. That is the 07-16 incident
+shape in miniature, and it holds whatever the dollar figures were on any
+particular week.
+
+In-session confirmation that the gate actively fires as a structural block:
+the 2026-07-30 daily run raised `FunnelIntegrityAlert: STRUCTURAL_BLOCK` with
+`wash_sale_mass_block` among the fired conditions
+`[VERIFIED — logs/daily_104/2026-07-30.log, read 2026-08-02]`.
+
+Magnitude context — CITED, not this design's decision basis: pipeline#223's
+record measured ~3 of 5 sessions zeroed, roughly $15 of protected tax across
+8 names (one instance $0.04) against $6,868 idle cash
+`[VERIFIED — prior work, pipeline#223's own record; not re-measured here]`.
+If those magnitudes had been 10× larger the design would be unchanged; only
+the operator's eventual floor CHOICE (step 4) should weigh fresh magnitude
+measurements, and that step has its own reviewed PR.
 
 ## The knob (this repo)
 
