@@ -12,17 +12,17 @@ with config fingerprint), and the 4-step rollout order.
 WHY/DIR: the design stands on a code-surface mechanism gap (a hard buy gate
 with no materiality notion, no proportionality, no governed override), NOT on
 any particular week's dollar figures; in-session confirmation that the gate
-fires as a structural block: the 2026-07-30 FunnelIntegrityAlert names
+fires as a structural block: the 2026-07-29 FunnelIntegrityAlert names
 wash_sale_mass_block among fired conditions `[VERIFIED —
-logs/daily_104/2026-07-30.log, read 2026-08-02]`. Magnitude figures are cited
+logs/daily_104/2026-07-29.log, read 2026-08-02]`. Magnitude figures are cited
 from pipeline#223 as context only and are explicitly NOT this design's
 decision basis (design §1). Re-homed here per orch#607's corrected record.
 EVIDENCE:
   artifact:      doc/design/2026-08-02-wash-sale-materiality-floor.md
   prod or exp:   exp — design doc only; no config file touched in this PR
-  existing data: in-session — the 2026-07-30 STRUCTURAL_BLOCK alert naming
+  existing data: in-session — the 2026-07-29 STRUCTURAL_BLOCK alert naming
                  wash_sale_mass_block `[VERIFIED —
-                 logs/daily_104/2026-07-30.log, read 2026-08-02]`; magnitude
+                 logs/daily_104/2026-07-29.log, read 2026-08-02]`; magnitude
                  figures cited from pipeline#223 as context only, explicitly
                  not this design's decision basis (design §1)
   best-known?:   yes — first materiality proposal in the policy repo; the only

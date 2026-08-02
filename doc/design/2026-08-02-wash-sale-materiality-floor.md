@@ -16,9 +16,9 @@ shape in miniature, and it holds whatever the dollar figures were on any
 particular week.
 
 In-session confirmation that the gate actively fires as a structural block:
-the 2026-07-30 daily run raised `FunnelIntegrityAlert: STRUCTURAL_BLOCK` with
+the 2026-07-29 daily run raised `FunnelIntegrityAlert: STRUCTURAL_BLOCK` with
 `wash_sale_mass_block` among the fired conditions
-`[VERIFIED — logs/daily_104/2026-07-30.log, read 2026-08-02]`.
+`[VERIFIED — logs/daily_104/2026-07-29.log, read 2026-08-02]`.
 
 Magnitude context — CITED, not this design's decision basis: pipeline#223's
 record measured ~3 of 5 sessions zeroed, roughly $15 of protected tax across
