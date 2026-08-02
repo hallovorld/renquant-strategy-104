@@ -9,18 +9,22 @@ ceil; unavailable → block stands), the full AC6 governed-override triplet
 (reviewed-PR-only identity; $50 design ceiling
 `[ASSUMED — design ceiling proposal]`; per-decision run-bundle stamp
 with config fingerprint), and the 4-step rollout order.
-WHY/DIR: measured on the live book — the mass block zeroed buys on 3 of 5
-sessions protecting ~$15 total (one instance $0.04) while $6,868 sat idle
-`[VERIFIED — pipeline#223 / the orch deployment-blockers record]`. The
-proposal was ordered re-homed here (policy owner) from orch#607's corrected
-record.
+WHY/DIR: the design stands on a code-surface mechanism gap (a hard buy gate
+with no materiality notion, no proportionality, no governed override), NOT on
+any particular week's dollar figures; in-session confirmation that the gate
+fires as a structural block: the 2026-07-30 FunnelIntegrityAlert names
+wash_sale_mass_block among fired conditions `[VERIFIED —
+logs/daily_104/2026-07-30.log, read 2026-08-02]`. Magnitude figures are cited
+from pipeline#223 as context only and are explicitly NOT this design's
+decision basis (design §1). Re-homed here per orch#607's corrected record.
 EVIDENCE:
   artifact:      doc/design/2026-08-02-wash-sale-materiality-floor.md
   prod or exp:   exp — design doc only; no config file touched in this PR
-  existing data: the 3-of-5-sessions / ~$15 / $0.04 / $6,868 measurements are
-                 pipeline#223's and the deployment-blockers record's, cited
-                 not re-measured
-                 `[VERIFIED — prior work, pipeline#223 / orch deployment-blockers record]`
+  existing data: in-session — the 2026-07-30 STRUCTURAL_BLOCK alert naming
+                 wash_sale_mass_block `[VERIFIED —
+                 logs/daily_104/2026-07-30.log, read 2026-08-02]`; magnitude
+                 figures cited from pipeline#223 as context only, explicitly
+                 not this design's decision basis (design §1)
   best-known?:   yes — first materiality proposal in the policy repo; the only
                  prior knob is wash_sale_days=30
   scope:         docs-only here; enforcement + invariance proof are
