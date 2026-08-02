@@ -59,6 +59,14 @@ The comparison quantity is the **estimated foregone tax benefit**:
 - If the estimate is UNAVAILABLE for a name (missing lot data, engine error),
   the block STANDS for that name — fail toward protection, stamped
   `estimate_unavailable`.
+- **Zero-floor short-circuit is normative, not descriptive.** When
+  `materiality_floor_usd == 0.0`, the `estimate <= floor` comparison is NEVER
+  evaluated — the gate runs exactly as it does today, for every name,
+  including one whose estimated foregone tax benefit happens to equal
+  `$0.00`. The comparison is evaluated ONLY when `floor > 0`. An
+  implementation that applies `estimate <= floor` uniformly (i.e. also at
+  `floor == 0.0`) is a CONTRACT VIOLATION of the advertised
+  byte-identical-at-default invariant, not merely an untested edge case.
 
 ## AC6 governed-override shape (this LOOSENS a hard gate — the full triplet)
 
@@ -82,15 +90,21 @@ The comparison quantity is the **estimated foregone tax benefit**:
 
 - No change to `wash_sale_days` or the block's detection logic.
 - No per-name allowlist; the floor is uniform arithmetic.
-- No effect while 0.0 — the pipeline PR must include a floor=0 A/B proving
-  byte-identical decisions on a captured session (the fix-wave rule).
+- No effect while 0.0 — the pipeline PR must include (a) a floor=0 A/B
+  proving byte-identical decisions on a captured session (the fix-wave rule),
+  AND (b) a constructed unit test with a name whose estimated foregone tax
+  benefit is exactly `$0.00` at `floor == 0.0`, asserting the block still
+  fires for that name. A captured session is a sample and may contain no
+  `estimate == $0.00` name by chance; the constructed case is what actually
+  exercises the short-circuit rule above, not just the common path.
 - Does not decide the anti-high-price tilt remedies (orch#608's switches);
   those stay their own enablement contract.
 
 ## Rollout order
 
 1. This PR (policy + knob at 0.0).
-2. pipeline#223 implementation consuming the knob (floor=0 invariance proof +
+2. pipeline#223 implementation consuming the knob (floor=0 invariance proof —
+   captured-session A/B AND a constructed `estimate == $0.00` case — +
    estimator unit tests incl. the netting case + the unavailable→block case).
 3. Pin advances (both repos) — operator batch.
 4. Operator sets a floor (propose starting at $5
