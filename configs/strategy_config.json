@@ -1018,13 +1018,8 @@
         "_2026_06_29_demean_revert": "EMERGENCY operator-authorized, reversible config rollback to demean OFF, based on NEW fresh-feed evidence (the fundamentals feed first became PIT-fresh 2026-06-29). NOT the formal ~60d revert: those metrics remain not-yet-evaluable and are still the path to a permanent decision. Evidence (admission layer only): live run 2026-06-29-live-5970796e — the 6 VetoWeakBuys survivors had xs_mean(mu)=+0.0212; demean admits when (mu-xs_mean)>=0.03, demean-OFF admits when mu>=0.03. ON admits 0, OFF admits 6 (FTNT 0.0505/0.0293, SOFI 0.0476/0.0264, NEE 0.0435/0.0223, BLK 0.0414/0.0202, AVGO 0.0373/0.0161, CVX 0.0365/0.0153). SCOPE: this is a single zero-ADMISSION incident on ONE fresh PIT-valid date — NOT a 'structural zero-buy' regime established over a distribution; the structural risk is ARGUED from the algebra (admission needs mu >= xs_mean+mu_floor ~= 0.051 vs the day's max mu ~= 0.0505) but a distribution of max(mu)-mean(mu) over many fresh dates is NOT yet available (needs the decision ledger to accumulate, ~Aug 2026). This demonstrates the ADMISSION layer only; full QP sizing/turnover replay is a documented follow-up, NOT asserted here. Reverting restores the pre-2026-06-24 raw mu>=0.03 config. Rollback = flip this one boolean."
       },
       "_2026_06_23_xgb_promotion": "operator-directed prod/shadow switch: XGB alpha158_fund promoted to primary scorer; HF PatchTST moved to readonly shadow. XGB beats PatchTST on 2026-06-23 data (real IC +0.054 vs -0.02; PatchTST fails placebo).",
+      "_2026_08_02_patchtst_retirement": "hf_patchtst shadow lane retired per orch#741: served artifact 625d/22x past the RFC #210 SLA, refresh chain never completed, frozen-prereg verdict PERSISTENCE-DRIVEN. Architecture explicitly preserved; any future PatchTST enters as a fresh candidate.",
       "shadow_models": [
-        {
-          "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
-          "kind": "hf_patchtst",
-          "artifact_path": "artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
-          "_2026_06_23_role": "Previous primary scorer moved to strategy_config.shadow.json after XGB promotion."
-        },
         {
           "name": "topdecile_clf_blend_leg",
           "kind": "xgb",

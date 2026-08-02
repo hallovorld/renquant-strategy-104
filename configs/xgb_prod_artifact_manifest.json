@@ -45,13 +45,7 @@
       "residual_risk": "All-regime trading per operator directive; XGB weak in BULL_CALM (IC +0.0149); conviction_gate mu_floor is the active guard; risks disclosed."
     }
   },
-  "readonly_shadow": {
-    "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
-    "kind": "hf_patchtst",
-    "artifact_path": "artifacts/patchtst_shadow/pt07_strict_trainfit_embargo60_20260522/seed_44/hf_patchtst_all_seed44_model.pt",
-    "config_path": "configs/strategy_config.shadow.json",
-    "experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
-  },
+  "_2026_08_02_patchtst_retirement": "readonly_shadow entry (hf_patchtst_pt07_strict_seed44_previous_primary) removed: hf_patchtst shadow lane retired per orch#741 — served artifact 625d/22x past the RFC #210 SLA, refresh chain never completed, frozen-prereg verdict PERSISTENCE-DRIVEN. This executes the third follow_up_exit_criteria item ('retire it from shadow'). Historical keys (supersedes, promotion_boundary.previous_primary_model_family, follow_up_exit_criteria) are retained as history. Architecture explicitly preserved; any future PatchTST enters as a fresh candidate.",
   "residual_controls": [
     "preflight/model contract",
     "conviction_gate mu_floor 0.03",
