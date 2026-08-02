@@ -150,7 +150,10 @@ def test_bull_calm_new_buys_and_panel_scorer_contract_are_explicit() -> None:
     assert panel["conviction_gate"]["enabled"] is True
     assert panel["conviction_gate"]["mu_floor"] == 0.03
     assert panel["regime_admission"]["enabled"] is False
-    # PatchTST is now the readonly shadow.
+    # Legacy ops-shadow file (strategy_config.shadow.json) still carries the
+    # PatchTST full-config; the orch#741 retirement removed the SERVED
+    # shadow_models lane from the prod/golden configs, and deliberately did
+    # not touch this standalone file (see doc/progress/2026-08-02).
     assert shadow["ranking"]["panel_scoring"]["kind"] == "hf_patchtst"
     assert "patchtst_shadow" in shadow["ranking"]["panel_scoring"]["artifact_path"]
 
@@ -195,18 +198,27 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
         in panel["regime_admission"]["_promotion_reason_2026_06_23"]
     )
 
+    # orch#741 retirement: the served hf_patchtst shadow lane is GONE from
+    # shadow_models (in prod AND golden), the retirement narrative key exists
+    # in both, and prod/golden stay consistent. The clf blend leg remains the
+    # only shadow model.
+    for cfg_panel in (panel, golden_panel):
+        assert all(
+            m["name"] != "hf_patchtst_pt07_strict_seed44_previous_primary"
+            for m in cfg_panel.get("shadow_models") or []
+        )
+        retirement_note = cfg_panel["_2026_08_02_patchtst_retirement"]
+        assert "retired per orch#741" in retirement_note
+        assert "PERSISTENCE-DRIVEN" in retirement_note
+        assert "fresh candidate" in retirement_note
+    assert panel["shadow_models"] == golden_panel["shadow_models"]
+    assert (
+        panel["_2026_08_02_patchtst_retirement"]
+        == golden_panel["_2026_08_02_patchtst_retirement"]
+    )
+
     shadow_models = panel.get("shadow_models") or []
     assert shadow_models == [
-        {
-            "name": "hf_patchtst_pt07_strict_seed44_previous_primary",
-            "kind": "hf_patchtst",
-            "artifact_path": shadow_panel["artifact_path"],
-            "_2026_06_23_role": (
-                "Previous primary scorer moved to strategy_config.shadow.json "
-                "after XGB promotion."
-            ),
-        }
-    ,
         {
             "name": "topdecile_clf_blend_leg",
             "kind": "xgb",
@@ -240,7 +252,6 @@ def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
     shadow_panel = shadow["ranking"]["panel_scoring"]
     primary = manifest["production_primary"]
     primary_cal = primary["global_calibration"]
-    shadow_manifest = manifest["readonly_shadow"]
 
     assert manifest["schema_version"] == 1
     assert manifest["strategy"] == "renquant_104"
@@ -274,11 +285,15 @@ def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
     assert primary["conviction_gate"]["mu_floor"] == panel["conviction_gate"]["mu_floor"] == 0.03
     assert primary["regime_admission"]["enabled"] == panel["regime_admission"]["enabled"] is False
 
-    assert shadow_manifest["name"] == "hf_patchtst_pt07_strict_seed44_previous_primary"
-    assert shadow_manifest["kind"] == shadow_panel["kind"] == "hf_patchtst"
-    assert shadow_manifest["artifact_path"] == shadow_panel["artifact_path"]
-    assert shadow_manifest["config_path"] == "configs/strategy_config.shadow.json"
-    assert shadow_manifest["experiment"] == panel["shadow_experiment"]
+    # orch#741 retirement: the readonly_shadow (hf_patchtst) entry is removed
+    # from the manifest and replaced by the retirement narrative key. The
+    # legacy ops-shadow FILE is untouched (see the shadow_panel pins above);
+    # only the manifest's current-state listing of the lane is retired.
+    assert "readonly_shadow" not in manifest
+    manifest_retirement = manifest["_2026_08_02_patchtst_retirement"]
+    assert "retired per orch#741" in manifest_retirement
+    assert "hf_patchtst_pt07_strict_seed44_previous_primary" in manifest_retirement
+    assert shadow_panel["kind"] == "hf_patchtst"
 
     # The override is honestly recorded: XGB did not pass the gate; risks disclosed.
     assert "conviction_gate mu_floor 0.03" in manifest["residual_controls"]
