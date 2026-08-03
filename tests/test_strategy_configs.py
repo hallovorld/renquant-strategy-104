@@ -860,7 +860,7 @@ def test_shadow_blend_profile_semantic_pins() -> None:
     kind=blend) so its identity pins and its calibration/mu decision cannot
     silently drift.
 
-    The profile is strategy_config.json + EXACTLY five deltas:
+    The profile is strategy_config.json + EXACTLY six deltas:
       1. kind="blend" + two pinned components (0=prod scorer, 1=top-decile clf)
          with BOTH identity pins each (content abbrev-16, fp verbatim —
          pipeline#218 fail-closed pin semantics);
@@ -871,7 +871,12 @@ def test_shadow_blend_profile_semantic_pins() -> None:
          no longer exists — every candidate would drop as conviction:mu_nan);
       4. ranking.kelly_sizing DISABLED (use_calibrator_mu would zero every
          target — legacy multiplicative sizing sizes the shadow intents);
-      5. shadow_models/shadow_experiment removed (this lane IS the blend).
+      5. shadow_models/shadow_experiment removed (this lane IS the blend);
+      6. every absolute probability-domain threshold nulled/disabled
+         (buy_floor, panel_veto, rotation floors, qp_admission_gate rank/ER
+         floors) — the lane's rank_score is a raw z-composite and the
+         2026-08-02 pipeline domain guard fail-closes probability floors on
+         uncalibrated scores; admission is ordinal-only.
     Everything else must stay semantically identical to production so the
     lane remains "shadow like prod minus submission".
     """
@@ -952,9 +957,29 @@ def test_shadow_blend_profile_semantic_pins() -> None:
     assert blend["wash_sale_min_material_npv"] == 1.00
     assert "wash_sale_min_material_npv" not in prod
 
+    # 6. raw-z-domain coherence (2026-08-03). The 2026-08-02 pipeline pin
+    # deployed the rank_score domain guard: any buy_floor mode fail-closes when
+    # calibration did not run (rank_score_domain_uncalibrated — it emptied 87
+    # candidates on 2026-08-03 and flipped the lane STRUCTURAL_BLOCK). This
+    # lane is uncalibrated BY DESIGN (delta 2), so every absolute
+    # probability-domain threshold is nulled/disabled and admission is
+    # ordinal-only (top_n, slots, risk gates). Pin each one so a merge-back
+    # from prod cannot silently re-arm a fail-close.
+    assert blend["ranking"]["panel_scoring"]["buy_floor"] is None
+    assert blend["model_sell"]["panel_veto"]["enabled"] is False
+    assert blend["rotation"]["panel_buy_floor"] is None
+    assert blend["rotation"]["panel_sell_floor"] is None
+    assert blend["rotation"]["panel_buy_rank_floor"] is None
+    gate = blend["rotation"]["joint_actions"]["qp_admission_gate"]
+    assert gate["min_rank_score"] is None
+    assert gate["topup_min_rank_score"] is None
+    # A missing calibrator ER is a REFUSAL on the current pin
+    # (qp_admission_expected_return), so the map must be null here.
+    assert gate["min_expected_return_by_regime"] is None
+
     # Everything else: semantically identical to production (the profile is
-    # "prod minus submission", not a fork). Normalize away the six deltas +
-    # provenance notes, then require equality.
+    # "prod minus submission", not a fork). Normalize away the declared deltas
+    # + provenance notes, then require equality.
     prod_norm = _strip_provenance(prod)
     blend_norm = _strip_provenance(blend)
     for cfg in (prod_norm, blend_norm):
@@ -963,10 +988,19 @@ def test_shadow_blend_profile_semantic_pins() -> None:
         p.pop("components", None)
         p.pop("shadow_models", None)
         p.pop("shadow_experiment", None)
+        p.pop("buy_floor", None)
         p["global_calibration"].pop("enabled", None)
         p["conviction_gate"].pop("enabled", None)
         cfg["ranking"]["kelly_sizing"].pop("enabled", None)
         cfg.pop("wash_sale_min_material_npv", None)
+        cfg["model_sell"]["panel_veto"].pop("enabled", None)
+        cfg["rotation"].pop("panel_buy_floor", None)
+        cfg["rotation"].pop("panel_sell_floor", None)
+        cfg["rotation"].pop("panel_buy_rank_floor", None)
+        qp_gate = cfg["rotation"]["joint_actions"]["qp_admission_gate"]
+        qp_gate.pop("min_rank_score", None)
+        qp_gate.pop("topup_min_rank_score", None)
+        qp_gate.pop("min_expected_return_by_regime", None)
     assert blend_norm == prod_norm
 
 
