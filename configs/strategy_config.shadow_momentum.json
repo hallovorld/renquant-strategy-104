@@ -155,7 +155,7 @@
   "initial_cash": 100000,
   "model_staleness_days": 60,
   "sharpe_floor": 1,
-  "wash_sale_days": 30,
+  "wash_sale_days": 0,
   "wash_sale_min_material_npv": 1.0,
   "min_hold_days": 5,
   "model_sell": {
@@ -1023,7 +1023,9 @@
       },
       "_2026_06_23_xgb_promotion": "operator-directed prod/shadow switch: XGB alpha158_fund promoted to primary scorer; HF PatchTST moved to readonly shadow. XGB beats PatchTST on 2026-06-23 data (real IC +0.054 vs -0.02; PatchTST fails placebo).",
       "expected_config_fingerprint": "momentum-v0-fd65161a20b29314",
-      "_shadow_momentum_profile": "2026-08-03 shadow_momentum lane profile (operator directive: show the momentum model's orders; pipeline#259 primary-scorer surface). Derived from strategy_config.shadow_blend.json \u2014 which is itself strategy_config.json + the six declared deltas \u2014 with THREE further deltas: (1) kind=momentum_residual + artifact_path=the momentum lane's machine-produced digest-chained ledger (the serving loader follows the verified tail row to the dated artifact); (2) expected_config_fingerprint pins the artifact's own momentum-<ver>-<16hex> stamp \u2014 the pipeline#259 kind-aware consistency check fail-closes on an absent/mismatched/non-string pin AND on an unstamped artifact; update this pin when the weekly TRAIN job rotates params_version (content rotation does NOT move it \u2014 it is the params fingerprint, not the content digest); (3) no components (single lookup scorer). Momentum scores are uncalibrated residual-momentum z's, so every delta-6 null applies identically (verified e2e: 4-round rehearsal 2026-08-03, final round 84/84 scored, ECONOMIC_TRADE, BUY WELL x3 @233.10). DORMANT until a reviewed daily step consumes it (Step-5-shaped, RENQUANT_READONLY_TAG isolation; the rehearsals reused the alpaca_shadow tag freed by the Step-4 retirement \u2014 a standing lane should claim its own tag in the pipeline's ALLOWED_BROKERS first)."
+      "_shadow_momentum_profile": "2026-08-03 shadow_momentum lane profile (operator directive: show the momentum model's orders; pipeline#259 primary-scorer surface). Derived from strategy_config.shadow_blend.json \u2014 which is itself strategy_config.json + the six declared deltas \u2014 with THREE further deltas: (1) kind=momentum_residual + artifact_path=the momentum lane's machine-produced digest-chained ledger (the serving loader follows the verified tail row to the dated artifact); (2) expected_config_fingerprint pins the artifact's own momentum-<ver>-<16hex> stamp \u2014 the pipeline#259 kind-aware consistency check fail-closes on an absent/mismatched/non-string pin AND on an unstamped artifact; update this pin when the weekly TRAIN job rotates params_version (content rotation does NOT move it \u2014 it is the params fingerprint, not the content digest); (3) no components (single lookup scorer). Momentum scores are uncalibrated residual-momentum z's, so every delta-6 null applies identically (verified e2e: 4-round rehearsal 2026-08-03, final round 84/84 scored, ECONOMIC_TRADE, BUY WELL x3 @233.10). DORMANT until a reviewed daily step consumes it (Step-5-shaped, RENQUANT_READONLY_TAG isolation; the rehearsals reused the alpaca_shadow tag freed by the Step-4 retirement \u2014 a standing lane should claim its own tag in the pipeline's ALLOWED_BROKERS first).",
+      "require_positive_expected_return_for_buy": false,
+      "_shadow_momentum_er_note": "DISABLED 2026-08-03: the ER conjunct sources alpha_to_mu \u2014 a non-momentum estimate that vetoed ranks 14-16 (ROST/JNJ/FDX, ER -1.8%..-14%). A momentum lane admitting only names a DIFFERENT model likes measures the intersection, not momentum. require_positive_raw_signal_for_buy stays ON (default): positive momentum z is this lane's own coherent direction gate."
     },
     "universe_floor": {
       "type": "sharpe",
@@ -1360,5 +1362,12 @@
       "pct": 0.2,
       "_reason": "2026-06-12 G1 dead-box catastrophe line (operator-approved Week-0 guard, eng plan): Z9 broker-resident GTC stops were implemented but never enabled - broker order book verified EMPTY, so every stop (SDL/trailing/protection) dies with the run machine. pct=0.20 is a FAR catastrophe distance: the in-process sigma-aware stops remain the primary exits; the broker GTC line only protects against a dead box. 6% intraday distance deliberately NOT used (whipsaws high-vol names). Requires umbrella PR #308 (_z9_stop_pct pct override)."
     }
-  }
+  },
+  "risk_gates": {
+    "realized_vol": {
+      "enabled": false,
+      "_shadow_momentum_note": "DISABLED for the momentum lane 2026-08-03 (operator: the flat 60% cap decapitates the signal \u2014 measured: the model's top-10 was 9/10 semis, ~all vol-gated; the order slate showed ranks 13-16). Momentum's head is high-vol BY CONSTRUCTION. Risk control moves from EXCLUSION to SIZING: sigma-scaled position multipliers and the per-name/sector caps remain ACTIVE, so a 100%-vol name gets a smaller hypothetical position, never a hidden veto. Shadow-only; the live lane's cap is untouched."
+    }
+  },
+  "_shadow_momentum_wash_sale_note": "wash_sale_days=0 for this SHADOW lane 2026-08-03: wash-sale is a tax rule on REAL lots; a hypothetical lane paying no tax should not inherit binary blocks (measured: MU/ASML \u2014 the model's ranks 11-12 \u2014 dropped on 'P/L unknown - binary block'). The LIVE lane keeps its filter; the cost-based materiality floor for live (pipeline#251, merged) awaits the operator's floor value on orch#747."
 }
