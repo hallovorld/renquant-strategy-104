@@ -27,6 +27,17 @@ WHY/DIR:   GOAL-8 S1 per the FROZEN prereg (renquant-orchestrator
            pin batch lands — NOT at this PR's merge.
 EVIDENCE:  tests/test_strategy_configs.py 39 passed (new mirror test +
            enumeration); full make test 98 passed / 1 skipped.
-NEXT:      RQ#563 merge → umbrella pin batch (s104 pin + pipeline
-           3ecd9880) → live pull + runtime sync (the recorded boundary) →
-           S1 clock starts next scheduled session.
+LANDING SEQUENCE (codex round 1 — no inert config on the deployed
+           interface): this PR MERGES ONLY as step 1 of a prepared,
+           coordinated batch: (1) merge here; (2) the already-drafted
+           umbrella pin PR advances strategy-104 (this merge commit) AND
+           pipeline (3ecd9880, carrying #261) TOGETHER, with the
+           candidate-pin artifact gate + regenerated snapshot from the
+           candidate assembly (the #561 fakeroot procedure); (3) on its
+           approval+merge: live pull + runtime sync, whose verified
+           timestamp + shas are the recorded S1 deployment boundary
+           (grants trail + this doc's follow-up); RQ#563's rail is already
+           on umbrella main and deploys in the same pull. Main stays the
+           umbrella's stable pinned interface — no unmerged-branch pins.
+NEXT:      re-approval here → execute the batch above in one window →
+           S1 clock starts next scheduled session after the boundary.
