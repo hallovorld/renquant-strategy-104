@@ -922,7 +922,7 @@
       "components": [
         {
           "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
-          "expected_content_sha256": "sha256:04d7a381cd6df847",
+          "expected_content_sha256": "sha256:6461b827ab2339a8",
           "expected_config_fingerprint": "sha256:f8fb2259b2bf1537",
           "_role": "component 0 = PRODUCTION panel scorer (rank:pairwise xgb); pins copied from the live artifact 2026-07-27 (content abbrev-16 per the shadow_models convention, fp verbatim)"
         },
