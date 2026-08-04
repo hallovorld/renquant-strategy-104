@@ -1029,6 +1029,7 @@ SHADOW_PROFILES = (
     "strategy_config.shadow_a.json",
     "strategy_config.shadow_b.json",
     "strategy_config.shadow_blend.json",
+    "strategy_config.shadow_momentum.json",
 )
 LIVE_PROFILES = ("strategy_config.json", "strategy_config.golden.json")
 WASH_SALE_FLOOR_KEY = "wash_sale_min_material_npv"
@@ -1126,3 +1127,53 @@ def test_momentum_shadow_entry_pins_the_ledger_path_with_no_repo_escape() -> Non
         p = Path(entry["artifact_path"])
         assert not p.is_absolute()
         assert ".." not in p.parts
+
+
+def test_shadow_momentum_profile_semantic_pins() -> None:
+    """Pin the shadow_momentum lane profile (pipeline#259 primary surface;
+    operator directive: show the momentum model's orders).
+
+    The profile is strategy_config.shadow_blend.json + EXACTLY three deltas:
+      1. kind="momentum_residual" + artifact_path = the lane's machine-produced
+         digest-chained ledger (the serving loader follows the verified tail
+         row to the dated artifact);
+      2. expected_config_fingerprint = the artifact's own params stamp —
+         pipeline#259's kind-aware consistency check fail-closes on an
+         absent/mismatched/non-string pin AND on an unstamped artifact, so
+         this pin is load-bearing, not documentation;
+      3. no components (single lookup scorer; the blend's two-leg pin block
+         does not apply).
+    Everything else — including every delta-6 raw-domain null, which applies
+    identically because momentum scores are uncalibrated z's — must stay
+    semantically identical to the blend profile, which is itself pinned
+    against production above. DORMANT until a reviewed daily step consumes
+    it (rehearsed e2e 2026-08-03: 84/84 scored, ECONOMIC_TRADE).
+    """
+    blend = load_strategy_config(CONFIG_DIR / "strategy_config.shadow_blend.json")
+    mom = load_strategy_config(CONFIG_DIR / "strategy_config.shadow_momentum.json")
+    panel = mom["ranking"]["panel_scoring"]
+
+    # 1-3. the declared deltas, exact.
+    assert panel["kind"] == "momentum_residual"
+    assert panel["artifact_path"] == (
+        "artifacts/momentum/momentum_artifact_ledger.jsonl")
+    assert panel["expected_config_fingerprint"] == "momentum-v0-fd65161a20b29314"
+    assert "components" not in panel
+
+    # The raw-domain coherence set carries over verbatim (delta 6 of the blend
+    # profile — same reason: uncalibrated scores, no probability thresholds).
+    assert panel["buy_floor"] is None
+    assert mom["model_sell"]["panel_veto"]["enabled"] is False
+    assert mom["rotation"]["joint_actions"]["qp_admission_gate"][
+        "min_expected_return_by_regime"] is None
+
+    # Everything else: semantically identical to the blend profile.
+    blend_norm = _strip_provenance(blend)
+    mom_norm = _strip_provenance(mom)
+    for cfg in (blend_norm, mom_norm):
+        p = cfg["ranking"]["panel_scoring"]
+        p.pop("kind", None)
+        p.pop("components", None)
+        p.pop("artifact_path", None)
+        p.pop("expected_config_fingerprint", None)
+    assert mom_norm == blend_norm
