@@ -955,7 +955,10 @@ def test_shadow_blend_profile_semantic_pins() -> None:
     # blend-vs-prod difference deliberate, and an unlisted delta that merely happens
     # to be popped is indistinguishable from one nobody noticed.
     assert blend["wash_sale_min_material_npv"] == 1.00
-    assert "wash_sale_min_material_npv" not in prod
+    # 2026-08-03: prod's floor went LIVE at the operator's $5 (was ABSENT —
+    # shadow-only de-scope). The blend lane deliberately keeps the stricter
+    # $1 evidence floor; the delta is now value-vs-value, still declared.
+    assert prod["wash_sale_min_material_npv"] == 5.00
 
     # 6. raw-z-domain coherence (2026-08-03). The 2026-08-02 pipeline pin
     # deployed the rank_score domain guard: any buy_floor mode fail-closes when
@@ -1044,21 +1047,25 @@ def test_every_shadow_profile_lights_the_wash_sale_floor() -> None:
             f"{name} does not carry the shadow materiality floor")
 
 
-def test_live_and_golden_leave_the_floor_UNSET() -> None:
-    """The de-scope, asserted rather than trusted to a diff.
+def test_live_floor_is_the_operator_decision_and_golden_stays_unset() -> None:
+    """The deliberate reversal this test's previous form demanded.
 
-    Setting this key in the live config is a capital-gate change; strategy#73 was
-    reviewed down to shadow-only precisely because seven cost blocks from one session
-    cannot justify it. If it ever appears here, that decision has been reversed —
-    which must happen deliberately, against the promotion criteria in the progress
-    doc, not by a config edit that nothing objects to.
+    2026-08-03, operator, verbatim: 「低于 $5 放行」 — given in direct response
+    to "wash sale不能全部杀死，要科学地看成本分析". The promotion criteria the
+    shadow de-scope named are met: the mechanism is merged and A/B
+    byte-invariance-proven at floor 0 (pipeline#251), the shadow lanes ran the
+    $1.00 floor and measured real per-block NPV costs ($0.04-$0.99), and the
+    07-28 incident quantified the harm of the binary rule (~$15 of tax
+    protected while $6.8k idled across 3 of 5 sessions). LIVE pins to exactly
+    5.00 — a different value is a NEW operator decision, not a tweak. GOLDEN
+    moves in lockstep: it is the daily drift REFERENCE for the live config
+    (test_live_and_golden_agree_about_the_floor), so the pair must carry the
+    same value or the drift WARN fires every run.
     """
-    for name in LIVE_PROFILES:
-        cfg = _load(name)
-        assert WASH_SALE_FLOOR_KEY not in cfg, (
-            f"{name} sets {WASH_SALE_FLOOR_KEY} — that is a LIVE capital-gate "
-            f"activation and this PR is scoped to shadow only")
-
+    live = _load("strategy_config.json")
+    assert live.get(WASH_SALE_FLOOR_KEY) == 5.00
+    golden = _load("strategy_config.golden.json")
+    assert golden.get(WASH_SALE_FLOOR_KEY) == 5.00
 
 def test_live_and_golden_agree_about_the_floor() -> None:
     """`scripts/daily_104.sh` uses golden as the drift reference for the live config,
