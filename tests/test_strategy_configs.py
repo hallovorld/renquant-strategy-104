@@ -25,6 +25,7 @@ def test_required_policy_configs_exist_and_parse() -> None:
         "strategy_config.shadow_a.json",
         "strategy_config.shadow_b.json",
         "strategy_config.shadow_blend.json",
+        "strategy_config.shadow_blend_momentum.json",
         "xgb_prod_artifact_manifest.json",
     ):
         data = _load(name)
@@ -1234,4 +1235,86 @@ def test_shadow_momentum_profile_semantic_pins() -> None:
         p.pop("require_positive_expected_return_for_buy", None)
         cfg.pop("risk_gates", None)
         cfg.pop("wash_sale_days", None)
+    assert mom_norm == blend_norm
+
+
+def test_shadow_blend_momentum_profile_semantic_pins() -> None:
+    """GOAL-8 S1 lane profile (prereg FROZEN in renquant-orchestrator
+    doc/research/2026-08-04-goal8-s1-zblend-prereg.md; consumed by
+    daily_104.sh Step 5b): the shadow_blend construction with EXACTLY one
+    difference — component 1 is the SLOW momentum ledger-pointer leg
+    (pipeline#261 kind dispatch) instead of the top-decile clf.
+
+    Same six deltas vs production as test_shadow_blend_profile_semantic_pins;
+    everything else identical. The momentum leg's identity contract differs
+    BY DESIGN: NO expected_content_sha256 (append-only ledger — a byte pin
+    is stale by design; pipeline#261 REFUSES one), and
+    expected_config_fingerprint pins the RECIPE (the loader-stamped params
+    fingerprint, measured 2026-08-04 from the live genesis ledger tail)."""
+    prod = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    blend = load_strategy_config(
+        CONFIG_DIR / "strategy_config.shadow_blend.json")
+    mom = load_strategy_config(
+        CONFIG_DIR / "strategy_config.shadow_blend_momentum.json")
+    panel = mom["ranking"]["panel_scoring"]
+
+    # 1. blend kind; component 0 = the EXACT prod leg the clf blend pins;
+    #    component 1 = the momentum ledger pointer, recipe-pinned, no byte pin.
+    assert panel["enabled"] is True
+    assert panel["kind"] == "blend"
+    components = panel["components"]
+    assert len(components) == 2
+    blend_c0 = blend["ranking"]["panel_scoring"]["components"][0]
+    assert {
+        k: components[0][k]
+        for k in ("artifact_path", "expected_content_sha256",
+                  "expected_config_fingerprint")
+    } == {
+        k: blend_c0[k]
+        for k in ("artifact_path", "expected_content_sha256",
+                  "expected_config_fingerprint")
+    }
+    c1 = components[1]
+    assert c1["kind"] == "momentum_residual"
+    assert c1["artifact_path"] == "artifacts/momentum/momentum_artifact_ledger.jsonl"
+    assert c1["expected_config_fingerprint"] == "momentum-v0-fd65161a20b29314"
+    assert "expected_content_sha256" not in c1  # pipeline#261 refuses it
+    # Single source: the ledger path must equal the prod config's slow
+    # momentum shadow leg (the lane this blend leg reuses).
+    mom_leg = next(
+        m
+        for m in prod["ranking"]["panel_scoring"]["shadow_models"]
+        if m["name"] == "momentum_residual_v0_shadow"
+    )
+    assert c1["artifact_path"] == mom_leg["artifact_path"]
+
+    # 2-6. identical delta set to the clf blend, then full equality after
+    # normalizing the SAME declared deltas — the two blend profiles must be
+    # the same lane construction, differing only in component 1.
+    assert panel["global_calibration"]["enabled"] is False
+    assert panel["conviction_gate"]["enabled"] is False
+    assert mom["ranking"]["kelly_sizing"]["enabled"] is False
+    assert mom["rotation"]["joint_actions"]["qp_mu_contract"] == "strict"
+    assert mom["ranking"]["alpha_to_mu"]["enabled"] is True
+    assert "shadow_models" not in panel
+    assert "shadow_experiment" not in panel
+    assert mom["wash_sale_min_material_npv"] == 1.00
+    assert panel["buy_floor"] is None
+    assert mom["model_sell"]["panel_veto"]["enabled"] is False
+    assert mom["rotation"]["panel_buy_floor"] is None
+    assert mom["rotation"]["panel_sell_floor"] is None
+    assert mom["rotation"]["panel_buy_rank_floor"] is None
+    gate = mom["rotation"]["joint_actions"]["qp_admission_gate"]
+    assert gate["min_rank_score"] is None
+    assert gate["topup_min_rank_score"] is None
+    assert gate["min_expected_return_by_regime"] is None
+
+    # The two blend profiles are byte-equal after stripping provenance and
+    # popping ONLY component 1 (the single declared difference).
+    blend_norm = _strip_provenance(blend)
+    mom_norm = _strip_provenance(mom)
+    for cfg in (blend_norm, mom_norm):
+        cfg["ranking"]["panel_scoring"]["components"] = (
+            cfg["ranking"]["panel_scoring"]["components"][:1]
+        )
     assert mom_norm == blend_norm
