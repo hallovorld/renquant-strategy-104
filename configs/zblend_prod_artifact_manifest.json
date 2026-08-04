@@ -1,0 +1,60 @@
+{
+ "schema_version": 1,
+ "strategy": "renquant_104",
+ "manifest_role": "operator_override_directive_audit",
+ "effective_date": "2026-08-04",
+ "supersedes": "xgb_prod_artifact_manifest.json (2026-06-23 XGB promotion)",
+ "scope_claim": {
+  "this_is": "an exceptional, withdrawable operator directive to run the z(prod)+z(slow momentum) BLEND as the live full-book scorer, explicitly overriding the preregistered GOAL-8 evidence ladder (S2 readout was scheduled 2026-08-31) and explicitly accepting that the blend has ZERO out-of-sample record at switch time.",
+  "this_is_not": "a normal production promotion, an acceptance pass, an S2/S3 ladder verdict, or a claim that the blend is independently justified by model evidence.",
+  "positive_claims_only": [
+   "Both components carry verified identity at switch time: component[0] is the governance-served prod scorer (content 6461b827ab2339a8, trained 2026-08-02, promotion_basis=freshness_fallback_rfc210); component[1] is the chain-verified momentum ledger (genesis artifact a824c480, cutoff 2026-08-02, golden-reproduction on every load).",
+   "The blend executed exactly one full shadow session before the switch (2026-08-04: 86 candidates, BUY GOOG x1 + SPG x3, zero fail-close, correct lane isolation).",
+   "The operator directive was given repeatedly and verbatim ('慢动量要进prod的!要成为moe里的一部分!' 2026-08-03; 'z-blend进prod说了一百遍了' 2026-08-04) and the blast-radius choice ('整本切换') was made against a presented menu that stated the risk."
+  ],
+  "explicitly_not_claimed": [
+   "That the blend improves on the prod scorer — no out-of-sample comparison exists; the S1/S2 window had run 1 of 20 sessions.",
+   "That the disabled calibrated-probability machinery (global calibration, Kelly mu, conviction gate, buy/sell probability floors, QP admission floors, panel sell-veto) is replaced by equivalent controls — it is DISABLED, with only score-unit-independent controls remaining.",
+   "That this switch does not degrade tax/turnover behaviour — untested."
+  ]
+ },
+ "promotion_boundary": {
+  "decision": "operator_directed_fullbook_scorer_switch",
+  "primary_model_family": "blend",
+  "acceptance_status": "operator_override_with_residual_controls",
+  "residual_controls_still_active": [
+   "model_protection 3-strike mu exits",
+   "trailing stops",
+   "risk budget rules",
+   "wash-sale NPV floor ($5)",
+   "sector caps",
+   "P-WF-GATE (reads component[0]'s governance license)",
+   "PIT freshness guard on retrains",
+   "broker precheck / pending-order exclusion",
+   "run bundle wf_gate_provenance (RFC#210 identity recorded per run)"
+  ],
+  "controls_disabled_by_unit_change": [
+   "global_calibration (foreign surface for z-composite)",
+   "kelly_sizing (calibrator mu input gone)",
+   "conviction_gate (calibrator ER floor)",
+   "panel buy_floor adaptive_mean_std",
+   "rotation panel_buy/panel_buy_rank/panel_sell floors",
+   "qp_admission_gate min_rank/topup/ER-by-regime",
+   "model_sell panel_veto (calibrated-prob threshold)"
+  ],
+  "rollback": "single-commit config revert (s104) + pin revert (umbrella): component[0] IS the prior prod scorer, so rollback restores the exact pre-switch book logic with no artifact swap.",
+  "review_condition": "operator may withdraw at any time; mandatory review at the first of: 10 trading sessions, a -5% drawdown from switch-date equity, or the 2026-08-31 S2 readout date (which now reads as a retrospective, not a gate)."
+ },
+ "production_primary": {
+  "kind": "blend",
+  "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
+  "artifact_path_role": "production_primary",
+  "components_note": "identity pins live in strategy_config.json ranking.panel_scoring.components (content sha rotated per RFC#210 promotion — orch#793 consumer checklist).",
+  "global_calibration": {
+   "enabled": false,
+   "strict_scorer_match": null,
+   "artifact_path": null,
+   "_note": "disabled by unit change; see controls_disabled_by_unit_change"
+  }
+ }
+}

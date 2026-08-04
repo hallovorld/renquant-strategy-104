@@ -159,9 +159,10 @@
   "min_hold_days": 5,
   "model_sell": {
     "panel_veto": {
-      "enabled": true,
+      "enabled": false,
       "min_rank_score": 0.5,
-      "max_streak_to_veto": 5
+      "max_streak_to_veto": 5,
+      "_zblend_note": "OPERATOR OVERRIDE 2026-08-04 (verbatim: 'z-blend进prod' / choice '整本切换'): DISABLED: min_rank_score=0.5 is a calibrated-probability threshold. Sell side remains covered by model_protection 3-strike, trailing, and risk rules — all score-unit-independent and untouched."
     }
   },
   "score_db": {
@@ -240,7 +241,7 @@
       "stop_loss_pct": 0.15,
       "max_single_day_loss_pct": 0,
       "sdl_n_sigma": 3,
-      "_sdl_reason": "2026-05-04: replaced absolute 6% threshold with \u03c3-scaled 3\u00b7daily_vol. B2 holdout showed absolute mode tripped on noise for high-vol stocks (NVDA/RBLX daily \u03c3\u22484-5%, threshold of 6% = ~1.3\u03c3 \u2014 common noise day). 20 SDL exits, 60% lost, median pnl \u22125.2%. With sdl_n_sigma=3, threshold = 3\u00b7(NGBoost_\u03c3/\u221a5). Per-ticker; low-vol stock \u03c3=2% \u2192 threshold 6% (legacy); high-vol \u03c3=5% \u2192 threshold 15% (more permissive on noise). Set max_single_day_loss_pct=0 so \u03c3 mode dominates; absolute mode comes back if NGBoost \u03c3 unavailable for a position.",
+      "_sdl_reason": "2026-05-04: replaced absolute 6% threshold with σ-scaled 3·daily_vol. B2 holdout showed absolute mode tripped on noise for high-vol stocks (NVDA/RBLX daily σ≈4-5%, threshold of 6% = ~1.3σ — common noise day). 20 SDL exits, 60% lost, median pnl −5.2%. With sdl_n_sigma=3, threshold = 3·(NGBoost_σ/√5). Per-ticker; low-vol stock σ=2% → threshold 6% (legacy); high-vol σ=5% → threshold 15% (more permissive on noise). Set max_single_day_loss_pct=0 so σ mode dominates; absolute mode comes back if NGBoost σ unavailable for a position.",
       "max_hold_days": 500,
       "drawdown_halt_pct": 0.35,
       "entry_mode": "momentum",
@@ -251,7 +252,7 @@
       "spy_velocity_halt_pct": 0.03,
       "spy_velocity_lookback_days": 3,
       "take_profit_pct": 0,
-      "_bb14_meta_reason": "2026-05-11 P4.5 winner: BB_14 stops + meta-label classifier. Validated on 11-mo OOS 2025-04\u21922026-03: APY +0.2% / MaxDD 44.7% vs baseline -0.3% / 55.8%. Meta-label vetoed 5 SDLs. See doc/research/meta-labeling-results-2026-05-11.md.",
+      "_bb14_meta_reason": "2026-05-11 P4.5 winner: BB_14 stops + meta-label classifier. Validated on 11-mo OOS 2025-04→2026-03: APY +0.2% / MaxDD 44.7% vs baseline -0.3% / 55.8%. Meta-label vetoed 5 SDLs. See doc/research/meta-labeling-results-2026-05-11.md.",
       "drawdown_resume_pct": 0.175,
       "sentiment": {
         "enabled": false
@@ -309,7 +310,7 @@
       "sentiment": {
         "enabled": true
       },
-      "_max_hold_days_reason": "2026-06-11 max_hold RFC (operator-approved, orchestrator #94): CHOPPY=40 was the lone per-current-regime tightening \u2014 shorter than the 60d thesis horizon, so it cut bets before evaluation (force-sold MU, a +momentum winner, at 45d after the regime fix flipped BEAR->CHOPPY; compounded by a missing entry-regime anchor falling back to the CURRENT regime). Tenure is not a regime property: unify at the far zombie-position backstop (500, matching all other regimes) so signal/risk exits (panel/rotation, model_protection, stops) own real exits per de Prado vertical-barrier reasoning. A uniform value also neutralizes the anchor-fallback hazard."
+      "_max_hold_days_reason": "2026-06-11 max_hold RFC (operator-approved, orchestrator #94): CHOPPY=40 was the lone per-current-regime tightening — shorter than the 60d thesis horizon, so it cut bets before evaluation (force-sold MU, a +momentum winner, at 45d after the regime fix flipped BEAR->CHOPPY; compounded by a missing entry-regime anchor falling back to the CURRENT regime). Tenure is not a regime property: unify at the far zombie-position backstop (500, matching all other regimes) so signal/risk exits (panel/rotation, model_protection, stops) own real exits per de Prado vertical-barrier reasoning. A uniform value also neutralizes the anchor-fallback hazard."
     },
     "BEAR": {
       "max_position_pct": 0,
@@ -410,8 +411,8 @@
     "min_trade_notional": 50.0,
     "dd_budget_pct": 0.15,
     "log_path": "logs/parking_sleeve_shadow.jsonl",
-    "_comment": "2026-07-02 S7 parking-sleeve config companion (renquant-pipeline #157 ParkingSleeveShadowTask). Lineage: RS-1 parking-sleeve decision memo r2 (renquant-orchestrator doc/research/2026-07-02-rs1-parking-sleeve.md) + 104 capability program \u00a71.3 / P1-2 (doc/design/2026-07-02-104-capability-program.md). INERT: enabled=false keeps the task a byte-identical no-op; values here mirror the pipeline's safe defaults so defining the keys changes nothing. Flipping enabled=true starts SHADOW JSONL logging only (mode=live is reserved/unimplemented in #157 and falls back to shadow with a warning); real exposure additionally requires the RS-1 \u00a74 pre-registered cash/SGOV/SPY replay comparison + a separately recorded capital authorization. beta_pos=1.0 is RS-1 \u00a72's PROVISIONAL planning heuristic, not a measured risk budget. SGOV price coverage is an UMBRELLA follow-up (daily price fetch is umbrella-owned; shadow tolerates SGOV absence by logging qty=null per #157 deviation 3) \u2014 SGOV is deliberately NOT added to the watchlist so the alpha universe / cross-sectional admission stats never include a T-bill ETF.",
-    "_enabled_20260710": "ENABLED 2026-07-10 (shadow-only: mode stays 'shadow' \u2014 JSONL logging, no orders, no capital movement; the RS-1 SS7 shadow corpus this collects is itself the prerequisite evidence for any future mode=live decision). Split from the operator-enablement batch per review: shadow observability carries no live risk and needs no staged-rollout packet. shadow.json (arm S-0.5) untouched."
+    "_comment": "2026-07-02 S7 parking-sleeve config companion (renquant-pipeline #157 ParkingSleeveShadowTask). Lineage: RS-1 parking-sleeve decision memo r2 (renquant-orchestrator doc/research/2026-07-02-rs1-parking-sleeve.md) + 104 capability program §1.3 / P1-2 (doc/design/2026-07-02-104-capability-program.md). INERT: enabled=false keeps the task a byte-identical no-op; values here mirror the pipeline's safe defaults so defining the keys changes nothing. Flipping enabled=true starts SHADOW JSONL logging only (mode=live is reserved/unimplemented in #157 and falls back to shadow with a warning); real exposure additionally requires the RS-1 §4 pre-registered cash/SGOV/SPY replay comparison + a separately recorded capital authorization. beta_pos=1.0 is RS-1 §2's PROVISIONAL planning heuristic, not a measured risk budget. SGOV price coverage is an UMBRELLA follow-up (daily price fetch is umbrella-owned; shadow tolerates SGOV absence by logging qty=null per #157 deviation 3) — SGOV is deliberately NOT added to the watchlist so the alpha universe / cross-sectional admission stats never include a T-bill ETF.",
+    "_enabled_20260710": "ENABLED 2026-07-10 (shadow-only: mode stays 'shadow' — JSONL logging, no orders, no capital movement; the RS-1 SS7 shadow corpus this collects is itself the prerequisite evidence for any future mode=live decision). Split from the operator-enablement batch per review: shadow observability carries no live risk and needs no staged-rollout packet. shadow.json (arm S-0.5) untouched."
   },
   "intraday_decisioning": {
     "enabled": true,
@@ -421,7 +422,7 @@
     "entry_close_cutoff_seconds": 1800,
     "canary_allowlist": [],
     "kill_switch_file": null,
-    "_comment": "2026-07-03 renquant105 Stage-1 SHADOW arming \u2014 control-plane section for the intraday session scheduler (RFC #208 doc/design/2026-06-30-renquant105-intraday-decisioning-architecture.md \u00a78.3/\u00a710; consumer: renquant-orchestrator #266 intraday_session_scheduler.load_intraday_config; this is #266's landing-checklist step 3 config half). Values mirror the scheduler's safe defaults exactly: tick_seconds=720 (\u00a75 fixed 12-min Stage-1 cadence), entry_open_delay_seconds=300 (no entries in the first 5 min after the open), entry_close_cutoff_seconds=1800 (no NEW entries in the last 30 min; exits continue to the bell), canary_allowlist=[] (no per-ticker restriction while shadow-only), kill_switch_file=null (scheduler default <data_root>/data/rq105/intraday_decisioning.KILL; the file is re-checked every cycle, so touching it halts mid-session). enabled=true is ONE of three independent gates and is INERT on its own: the scheduler is a SEPARATE process (launchd job, nothing in the daily run invokes it) and additionally requires the env kill switch RENQUANT_INTRADAY_DECISIONING to be truthy AND the kill-switch file to be absent \u2014 the machine-side install (plist bootstrap + env flag) is a separately authorized ask-first landing step. mode=shadow is the ONLY implemented mode: #266 runtime-asserts never-submit on every tick (assert_shadow_never_submits raises ShadowModeViolation before persisting) and structurally DOWNGRADES mode='live' to shadow with a counted warning (\u00a79.3a); Stage-2 live authorization is a separate future decision and must arrive as a config change that fails tests/test_strategy_configs.py's shadow-only pin first."
+    "_comment": "2026-07-03 renquant105 Stage-1 SHADOW arming — control-plane section for the intraday session scheduler (RFC #208 doc/design/2026-06-30-renquant105-intraday-decisioning-architecture.md §8.3/§10; consumer: renquant-orchestrator #266 intraday_session_scheduler.load_intraday_config; this is #266's landing-checklist step 3 config half). Values mirror the scheduler's safe defaults exactly: tick_seconds=720 (§5 fixed 12-min Stage-1 cadence), entry_open_delay_seconds=300 (no entries in the first 5 min after the open), entry_close_cutoff_seconds=1800 (no NEW entries in the last 30 min; exits continue to the bell), canary_allowlist=[] (no per-ticker restriction while shadow-only), kill_switch_file=null (scheduler default <data_root>/data/rq105/intraday_decisioning.KILL; the file is re-checked every cycle, so touching it halts mid-session). enabled=true is ONE of three independent gates and is INERT on its own: the scheduler is a SEPARATE process (launchd job, nothing in the daily run invokes it) and additionally requires the env kill switch RENQUANT_INTRADAY_DECISIONING to be truthy AND the kill-switch file to be absent — the machine-side install (plist bootstrap + env flag) is a separately authorized ask-first landing step. mode=shadow is the ONLY implemented mode: #266 runtime-asserts never-submit on every tick (assert_shadow_never_submits raises ShadowModeViolation before persisting) and structurally DOWNGRADES mode='live' to shadow with a counted warning (§9.3a); Stage-2 live authorization is a separate future decision and must arrive as a config change that fails tests/test_strategy_configs.py's shadow-only pin first."
   },
   "risk": {
     "require_sector_map_for_buys": true,
@@ -473,7 +474,7 @@
         "min_exit_edge": 0,
         "_reason": "2026-05-21 P0-4: model-driven soft exits on short-term unrealized gains must have enough negative expected return to pay immediate tax drag. Uses the same fraction-of-position tax_drag convention as kernel.rotation.tax_drag. Path-risk exits remain exempt."
       },
-      "_deployment_reason": "2026-05-11 audit fix: legacy PanelConvictionExitTask had 0/12336 historical fire rate due to calibrator-saturation rank_score gating. NEW CrossSectionalPanelExitTask post-PanelScoringJob uses raw panel_score with cross-sectional percentile (AND mu) + strong-mu OR-bypass. Catches BA-style cases: panel=+0.198 (32%ile) mu=-0.123 \u2192 fires via strong_mu bypass."
+      "_deployment_reason": "2026-05-11 audit fix: legacy PanelConvictionExitTask had 0/12336 historical fire rate due to calibrator-saturation rank_score gating. NEW CrossSectionalPanelExitTask post-PanelScoringJob uses raw panel_score with cross-sectional percentile (AND mu) + strong-mu OR-bypass. Catches BA-style cases: panel=+0.198 (32%ile) mu=-0.123 → fires via strong_mu bypass."
     },
     "model_protection": {
       "enabled": true,
@@ -680,7 +681,7 @@
     "mu_shrinkage": 0.0,
     "top_k": 8,
     "max_step_per_session": 0.15,
-    "_comment": "2026-07-09 D5 PREPARE per orchestrator RFC #443 (Deployment Governor top-down sizing architecture). Consumer: renquant-pipeline deployment_governor reader (parallel PR; the reader defaults enabled=false, so this block is INERT \u2014 byte-identical behavior \u2014 until that code merges AND the pin bumps). All numeric values are PLACEHOLDERS pending nested-selection tuning on the frozen tuning subset (prereg protocol D6) \u2014 they must NOT be treated as calibrated. Production enablement requires the D6 preregistered replay gate + S2 canary + recorded operator sign-off. Golden kept in lockstep per the active==golden semantic-match contract. enabled=false in ALL THREE configs including shadow (Codex review, PR #50); S1 shadow arming is a SEPARATE future PR gated on RFC #443 approval + pipeline reader PR #179 merged + a D6 frozen tuned config."
+    "_comment": "2026-07-09 D5 PREPARE per orchestrator RFC #443 (Deployment Governor top-down sizing architecture). Consumer: renquant-pipeline deployment_governor reader (parallel PR; the reader defaults enabled=false, so this block is INERT — byte-identical behavior — until that code merges AND the pin bumps). All numeric values are PLACEHOLDERS pending nested-selection tuning on the frozen tuning subset (prereg protocol D6) — they must NOT be treated as calibrated. Production enablement requires the D6 preregistered replay gate + S2 canary + recorded operator sign-off. Golden kept in lockstep per the active==golden semantic-match contract. enabled=false in ALL THREE configs including shadow (Codex review, PR #50); S1 shadow arming is a SEPARATE future PR gated on RFC #443 approval + pipeline reader PR #179 merged + a D6 frozen tuned config."
   },
   "execution": {
     "_settlement_reason_2026_05_24": "US equities moved to T+1 settlement on 2024-05-28 under SEC Rule 15c6-1 amendments. Sim uses Alpaca-like non-marginable buying power so executed sell proceeds can fund buys without using 2x/4x margin buying power; set buying_power_mode=settled_cash for cash-account stress tests.",
@@ -747,15 +748,15 @@
     "enabled": true,
     "min_expected_advantage_pct": 0.06,
     "target_horizon_days": 60,
-    "_target_horizon_days_reason": "2026-05-24 Codex horizon-contract fix: panel-LTR production label/calibrator/QP \u03bc are 60d (`panel_ltr.lookahead_days=60`, `qp_mu_horizon_days=60`). Rotation decisions must use the same expected-return horizon; 20d made logs/thresholds short-horizon while the panel calibrator supplied 60d \u03bc, and BULL_CALM forensics showed the signal aligns better at longer horizons.",
+    "_target_horizon_days_reason": "2026-05-24 Codex horizon-contract fix: panel-LTR production label/calibrator/QP μ are 60d (`panel_ltr.lookahead_days=60`, `qp_mu_horizon_days=60`). Rotation decisions must use the same expected-return horizon; 20d made logs/thresholds short-horizon while the panel calibrator supplied 60d μ, and BULL_CALM forensics showed the signal aligns better at longer horizons.",
     "transaction_cost_pct": 0,
     "min_rotation_hold_days": 7,
     "lt_protection_days": 30,
     "max_rotations_per_bar": 1,
-    "panel_buy_floor": 0.3,
-    "panel_sell_floor": 0.2,
+    "panel_buy_floor": null,
+    "panel_sell_floor": null,
     "panel_buy_top_n": 3,
-    "panel_buy_rank_floor": 0.2,
+    "panel_buy_rank_floor": null,
     "joint_actions": {
       "enabled": false,
       "fee_pct": 0.0005,
@@ -770,28 +771,26 @@
       "_qp_turnover_max_reason": "2026-05-23 Codex churn fix: explicit global daily L1 turnover cap. Regime-specific overrides may be tighter; BULL_CALM uses 0.15 so the system can still accumulate but cannot churn the book aggressively on marginal signals.",
       "qp_dw_max": 0.5,
       "qp_min_dw_pct": 0.02,
-      "_qp_min_dw_pct_reason": "2026-05-04: raised 0.005\u21920.02 to stop QP micro-trim (was killing strategy via 91 sub-$500 sells with full ST tax + slippage; sells avg +13% gross but net -3.6%).",
+      "_qp_min_dw_pct_reason": "2026-05-04: raised 0.005→0.02 to stop QP micro-trim (was killing strategy via 91 sub-$500 sells with full ST tax + slippage; sells avg +13% gross but net -3.6%).",
       "qp_min_share_floor_pct": 0,
       "_qp_min_share_floor_pct_reason": "2026-05-24 Codex QP safety fix: disabled whole-share floor. Continuous Markowitz/Boyd QP weights are the constraint contract; integer execution may round down when target delta is below one share, but must not round up to one share and exceed solver target/caps. Re-enable only with fractional-share execution or a mixed-integer lot-size optimizer.",
       "qp_admission_gate": {
         "enabled": true,
-        "min_rank_score": 0.55,
+        "min_rank_score": null,
         "min_panel_score": null,
-        "topup_min_rank_score": 0.55,
+        "topup_min_rank_score": null,
         "topup_min_panel_score": null,
-        "min_expected_return_by_regime": {
-          "BULL_CALM": 0.01,
-          "default": 0.005
-        },
-        "_min_expected_return_reason": "2026-05-24 Codex QP alpha contract: QP may size only candidates with finite calibrated expected-return evidence on the same 60d horizon as panel_ltr/QP \u03bc. Requiring 4% 60d expected excess return in BULL_CALM keeps thin probability-only signals from becoming trades after friction and benchmark-sleeve opportunity cost.",
+        "min_expected_return_by_regime": null,
+        "_min_expected_return_reason": "2026-05-24 Codex QP alpha contract: QP may size only candidates with finite calibrated expected-return evidence on the same 60d horizon as panel_ltr/QP μ. Requiring 4% 60d expected excess return in BULL_CALM keeps thin probability-only signals from becoming trades after friction and benchmark-sleeve opportunity cost.",
         "_default_min_expected_return_reason": "2026-06-10 BL-4 deep-audit: a by_regime map with no global silently disabled this floor in BULL_VOLATILE/CHOPPY/BEAR (those regimes were absent from the map, so _qp_admission_gate_value returned None and the gate went dark). The default restores a non-zero ER floor in every un-listed regime. 0.005 is a conservative starting point (half of BULL_CALM's 0.01); operator may prefer a stricter floor in BEAR/CHOPPY. Requires pipeline default-key support (PR #93).",
         "respect_open_slots": true,
         "_reason": "2026-05-23 Codex alpha-conversion fix: QP may size/rebalance only pre-qualified alpha. WF trace forensics showed negative raw-panel and low-rank QP/TopUp adds were net negative after tax/friction, and QP opened risk when the book was already at the legacy slot cap. Require calibrated rank >=0.55, raw panel >=0, and available slot for new names before emitting QP buys/top-ups.",
         "_min_panel_score_note": "2026-06-09: GBDT-scale floor 0 structurally excluded PatchTST (scores center -0.2); rank floor stays the quality gate.",
-        "_min_er_note": "2026-06-09 operator: 4% was GBDT-era no-bull-signal defense; pt07 has recent-window BULL_CALM edge with ER<4%. 1% still clears costs."
+        "_min_er_note": "2026-06-09 operator: 4% was GBDT-era no-bull-signal defense; pt07 has recent-window BULL_CALM edge with ER<4%. 1% still clears costs.",
+        "_zblend_gate_note": "OPERATOR OVERRIDE 2026-08-04 (verbatim: 'z-blend进prod' / choice '整本切换'): NULLED (null = designed skip, verified in the pinned pipeline): calibrated-probability/ER constants with no unit in z-space."
       },
       "qp_tax_aware": false,
-      "_qp_tax_aware_reason": "2026-05-04: explicitly DISABLED. tax_cost_vec made QP avoid selling big-gain positions, mechanizing the disposition effect \u2014 strategy crystallized small wins repeatedly while big winners reversed and erased gains. Violates the 'tax = reporting only, no decision logic' mandate (feedback_no_tax_driven_logic.md).",
+      "_qp_tax_aware_reason": "2026-05-04: explicitly DISABLED. tax_cost_vec made QP avoid selling big-gain positions, mechanizing the disposition effect — strategy crystallized small wins repeatedly while big winners reversed and erased gains. Violates the 'tax = reporting only, no decision logic' mandate (feedback_no_tax_driven_logic.md).",
       "qp_soft_sell_guard": {
         "enabled": true,
         "apply_tax_gates": false,
@@ -811,7 +810,7 @@
       "qp_drawdown_limit": 0.2,
       "qp_no_trade_band_factor": 1,
       "qp_no_trade_band_cap": 0.05,
-      "_qp_no_trade_band_cap_reason": "2026-05-09 BUG #7: \u03c3-derived no-trade band uncapped \u2192 high-\u03c3 holdings (e.g. BA \u03c3\u0302=0.24) had 24% band, structurally uncoverable. Cap at 5% so any single-position rebalance >5% always fires.",
+      "_qp_no_trade_band_cap_reason": "2026-05-09 BUG #7: σ-derived no-trade band uncapped → high-σ holdings (e.g. BA σ̂=0.24) had 24% band, structurally uncoverable. Cap at 5% so any single-position rebalance >5% always fires.",
       "qp_min_invested_pct": 0,
       "qp_cash_drag_lambda": 0,
       "qp_min_invested_requires_positive_edge": true,
@@ -823,20 +822,20 @@
       "qp_horizon_contract": "strict",
       "_qp_horizon_contract_reason": "2026-05-23 Codex audit: calibrator mu is a 60d forward-return estimate while realized-vol fallback is annualized; Markowitz QP requires mu and Sigma on the same single-period horizon, so sigma is scaled by sqrt(60/252) before covariance construction.",
       "qp_ledoit_wolf_lambda": 0.2,
-      "_qp_ledoit_wolf_lambda_reason": "2026-05-10 C3: bumped 0.0\u21920.2 (Ledoit-Wolf 2004 mid-of-recommended-range). 169-stock universe sample-cov is high-noise / near-singular without shrinkage; \u03bb=0.2 lifts off-diagonals toward 0 and equalises variance toward avg. Reference: Ledoit & Wolf 2004 Honey paper (J.PortMgmt 30(4):110-119).",
+      "_qp_ledoit_wolf_lambda_reason": "2026-05-10 C3: bumped 0.0→0.2 (Ledoit-Wolf 2004 mid-of-recommended-range). 169-stock universe sample-cov is high-noise / near-singular without shrinkage; λ=0.2 lifts off-diagonals toward 0 and equalises variance toward avg. Reference: Ledoit & Wolf 2004 Honey paper (J.PortMgmt 30(4):110-119).",
       "qp_sector_cap_enabled": true,
-      "_qp_sector_cap_enabled_reason": "2026-05-10 C2: hard linear sector cap inside QP solve. Total sector weight \u2264 max_positions_per_sector \u00d7 max_position_pct. Closes audit gap where stress reallocation could exceed sector cap that buy-side filter enforced.",
+      "_qp_sector_cap_enabled_reason": "2026-05-10 C2: hard linear sector cap inside QP solve. Total sector weight ≤ max_positions_per_sector × max_position_pct. Closes audit gap where stress reallocation could exceed sector cap that buy-side filter enforced.",
       "qp_correlation_cap_enabled": true,
-      "_qp_correlation_cap_enabled_reason": "2026-05-10 C2: hard linear group cap on high-corr pairs (|\u03c1| \u2265 correlation_guard_threshold). wp[i] + wp[j] \u2264 2 \u00d7 max_position_pct. Linear approx of pair-product cap (Boyd 2004 \u00a74.4).",
+      "_qp_correlation_cap_enabled_reason": "2026-05-10 C2: hard linear group cap on high-corr pairs (|ρ| ≥ correlation_guard_threshold). wp[i] + wp[j] ≤ 2 × max_position_pct. Linear approx of pair-product cap (Boyd 2004 §4.4).",
       "qp_c2_infeasible_policy": "strict",
       "_qp_c2_infeasible_policy_reason": "2026-05-24 Codex audit: sector/correlation caps are hard diversification constraints. If they make the QP infeasible, block QP orders for the bar instead of relaxing or dropping risk constraints. Diagnostic configs may explicitly set relax/drop.",
       "allow_cap_compliance_sells_on_infeasible": true,
       "_allow_cap_compliance_sells_on_infeasible_reason": "2026-06-06 Codex daily-shadow audit follow-up: keep qp_c2_infeasible_policy=strict, but allow the tested cap_compliance_fallback to emit risk-reduction sells that reduce existing over-cap holdings. This does not relax sector/correlation caps and never admits new buys.",
       "qp_conviction_cap_enabled": true,
       "qp_mu_contract": "strict",
-      "_qp_mu_contract_reason": "2026-05-21 Codex audit: QP objective expects \u03bc in expected-return / volatility units. Strictly reject raw rank_score/panel_score fallback; valid sources are calibrator expected_return, NGBoost \u03bc, or alpha_to_mu.",
+      "_qp_mu_contract_reason": "2026-05-21 Codex audit: QP objective expects μ in expected-return / volatility units. Strictly reject raw rank_score/panel_score fallback; valid sources are calibrator expected_return, NGBoost μ, or alpha_to_mu.",
       "qp_band_method": "davis_norman",
-      "_qp_band_method_note_2026-05-30": "Operator opt-in to Davis-Norman closed-form no-trade band (research C). Defaults: dn_floor=0.005, dn_ceiling=qp_no_trade_band_cap (0.05), dn_eps_oneway=qp_cost_kappa/2 (0.001), dn_gamma=qp_risk_aversion (3.0). Replaces 5% ad-hoc band_cap (binding on most names) with literature 1/3-power band ~0.5-2% at typical \u03c3. Per Davis-Norman 1990 / Jane\u010dek-Shreve 2004.",
+      "_qp_band_method_note_2026-05-30": "Operator opt-in to Davis-Norman closed-form no-trade band (research C). Defaults: dn_floor=0.005, dn_ceiling=qp_no_trade_band_cap (0.05), dn_eps_oneway=qp_cost_kappa/2 (0.001), dn_gamma=qp_risk_aversion (3.0). Replaces 5% ad-hoc band_cap (binding on most names) with literature 1/3-power band ~0.5-2% at typical σ. Per Davis-Norman 1990 / Janeček-Shreve 2004.",
       "qp_live_shadow_telemetry": {
         "enabled": true,
         "candidate_name": "hybrid_option_f_allocator",
@@ -848,7 +847,8 @@
     },
     "enabled_regimes": [
       "BULL_CALM"
-    ]
+    ],
+    "_zblend_floor_note": "OPERATOR OVERRIDE 2026-08-04 (verbatim: 'z-blend进prod' / choice '整本切换'): NULLED calibrated-probability floors (null = disabled, verified in the pinned pipeline by the blend lane 2026-08-03)."
   },
   "sample_start": "2016-01-01",
   "sample_end": "2026-06-30",
@@ -904,7 +904,7 @@
       "spy_trend",
       "hurst_proxy"
     ],
-    "_lookahead_removed_2026-05-10": "Per \u00a75.13.5 single-source-of-truth: this key shadowed panel_ltr.lookahead_days and produced ambiguity (model_params.lookahead=5 vs panel_ltr.lookahead_days=10 vs prod artifact=60). Canonical key is now panel_ltr.lookahead_days. Tournament-side code (training/features.py build_training_features) still defaults to 5 internally \u2014 behavior unchanged for tournament path, but config no longer carries a conflicting value.",
+    "_lookahead_removed_2026-05-10": "Per §5.13.5 single-source-of-truth: this key shadowed panel_ltr.lookahead_days and produced ambiguity (model_params.lookahead=5 vs panel_ltr.lookahead_days=10 vs prod artifact=60). Canonical key is now panel_ltr.lookahead_days. Tournament-side code (training/features.py build_training_features) still defaults to 5 internally — behavior unchanged for tournament path, but config no longer carries a conflicting value.",
     "threshold": 0.03,
     "leaf_size": 25,
     "bags": 15,
@@ -919,11 +919,11 @@
       "bypass_ticker_gate": true,
       "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
       "nan_prone_cols": [],
-      "buy_floor": "adaptive_mean_std",
+      "buy_floor": null,
       "buy_floor_adaptive_cap": 0.3,
       "buy_floor_min": 0.2,
       "buy_floor_std_mult": 1,
-      "_buy_floor_reason": "2026-05-21 Codex audit: use uncapped cross-sectional mean+1*std on calibrated rank_score. The prior adaptive_mean_std_cap mode capped the floor at 0.30; once calibrated scores clustered around 0.55-0.65, the floor became a no-op and admitted nearly every candidate. This follows cross-sectional normalization/ranking practice (Qlib CSRankNorm/CSZFillna) while preserving the no-signal behavior when mean+std exceeds all compressed scores. adaptive_mean_std_cap remains for old experiments only.",
+      "_buy_floor_reason": "OPERATOR OVERRIDE 2026-08-04 (verbatim: 'z-blend进prod' / choice '整本切换'): NULLED: adaptive_mean_std floors on calibrated rank_score; this lane's rank_score is a raw z-composite (same mechanism the blend lane documented 2026-08-03).",
       "rotation_advantage": 0,
       "sizing": {
         "enabled": true,
@@ -936,7 +936,7 @@
         "artifact_path": "artifacts/prod/ngboost-head.alpha158_fund.json",
         "score_mode": "additive",
         "lambda_sigma": 0,
-        "_disable_reason": "2026-05-09 EVENING REVERT after SIM-A vs SIM-B 27-month A/B (E55): NGB-on APY=+2.99% Sharpe=+0.26 trades=455 LOSES to NGB-off APY=+6.77% Sharpe=+0.40 trades=303 by -3.78 APY pts / -0.14 Sharpe. The \u03c3-aware sizing degrades position selection AND increases churn vs. simple rank-only QP. Pure-alpha component too weak (~+0.018) to justify the friction it introduces. NGB head artifact retained for future use; flag stays off until either pure_alpha \u2265+0.04 or alternative sizing scheme proves itself."
+        "_disable_reason": "2026-05-09 EVENING REVERT after SIM-A vs SIM-B 27-month A/B (E55): NGB-on APY=+2.99% Sharpe=+0.26 trades=455 LOSES to NGB-off APY=+6.77% Sharpe=+0.40 trades=303 by -3.78 APY pts / -0.14 Sharpe. The σ-aware sizing degrades position selection AND increases churn vs. simple rank-only QP. Pure-alpha component too weak (~+0.018) to justify the friction it introduces. NGB head artifact retained for future use; flag stays off until either pure_alpha ≥+0.04 or alternative sizing scheme proves itself."
       },
       "sigma_sizing": {
         "enabled": true,
@@ -944,7 +944,7 @@
         "ceiling": 1
       },
       "global_calibration": {
-        "enabled": true,
+        "enabled": false,
         "artifact_path": "artifacts/prod/panel-rank-calibration.json",
         "regime_conditional": {
           "enabled": false,
@@ -956,7 +956,8 @@
             "BEAR"
           ]
         },
-        "strict_scorer_match": true
+        "strict_scorer_match": true,
+        "_zblend_note": "OPERATOR OVERRIDE 2026-08-04 (verbatim: 'z-blend进prod' / choice '整本切换'): DISABLED: panel-rank-calibration.json is stamped against the prod scorer alone; mapping a blend z-composite through it would be a foreign calibration surface (the exact LoadGlobalCalibrationTask refusal class)."
       },
       "fingerprint": {
         "accept_legacy_stamps": true,
@@ -967,7 +968,7 @@
         "edge_sharpe_floor": {
           "enabled": false,
           "threshold": 0.1,
-          "_disable_reason": "2026-05-09 (E52 audit): pure-alpha ceiling on current panel ~+0.029, no \u03c4 achieves target FDR=0.30 OR 0.40. Best \u03c4=0.39 \u2192 FDR=0.42 admits 1% of val rows = 0 candidates per day in production. Gate would reject all signals; better to skip filter and let QP / sigma_sizing handle quality. Re-enable when val \u03bc-IC \u2265 +0.04 + placebo |IC|<0.01."
+          "_disable_reason": "2026-05-09 (E52 audit): pure-alpha ceiling on current panel ~+0.029, no τ achieves target FDR=0.30 OR 0.40. Best τ=0.39 → FDR=0.42 admits 1% of val rows = 0 candidates per day in production. Gate would reject all signals; better to skip filter and let QP / sigma_sizing handle quality. Re-enable when val μ-IC ≥ +0.04 + placebo |IC|<0.01."
         },
         "distribution_floor": {
           "enabled": false
@@ -981,7 +982,7 @@
         "enabled": true,
         "threshold": 0.1
       },
-      "kind": "xgb",
+      "kind": "blend",
       "_2026-05-19_kind_fix": "renamed from 'panel_ltr_xgboost' to 'xgb' to match model_registry. commit 9a6cca1 (2026-05-18) introduced registry-dispatch in LoadScorerTask. Synced from strategy_config.golden.json (also fixed). Without this fix LoadScorerTask logs ERROR + returns False, panel scorer never runs, candidates get only per-ticker scores, QP returns optimal_no_signal, zero trades.",
       "sentiment": {
         "enabled": true,
@@ -1009,13 +1010,14 @@
       },
       "_2026_06_05_shadow_switch": "Previous XGB primary scorer moved to readonly shadow after operator-directed PatchTST promotion.",
       "conviction_gate": {
-        "enabled": true,
+        "enabled": false,
         "mu_floor": 0.03,
         "demean_cross_sectional": false,
         "_2026_06_23": "Only buy names whose calibrated E[R-SPY] >= 3% (renquant-pipeline #140). Drops near-break-even noise (NFLX/ZM, mu~=0); keeps PANW/CSCO.",
-        "_2026_06_24_demean": "demean_cross_sectional ON (renquant-pipeline #145 + footgun fix #147): subtract the FULL cross-sectional mean of mu before the 0.03 floor so the +0.0245 calibration intercept carries no conviction and the floor gates RELATIVE conviction (Grinold). ADMISSION-BEHAVIOUR checked offline across 20 live runs (0/20 zero-buy days; keeps MU/CRWD/PANW/CSCO, drops the near-floor intercept buys CME/NFLX/AMZN) \u2014 behaviour, NOT outcome validation. Requires pipeline pin >= 42d6205 (the footgun fix) \u2014 without it demean over the post-veto subset admits 0.",
+        "_2026_06_24_demean": "demean_cross_sectional ON (renquant-pipeline #145 + footgun fix #147): subtract the FULL cross-sectional mean of mu before the 0.03 floor so the +0.0245 calibration intercept carries no conviction and the floor gates RELATIVE conviction (Grinold). ADMISSION-BEHAVIOUR checked offline across 20 live runs (0/20 zero-buy days; keeps MU/CRWD/PANW/CSCO, drops the near-floor intercept buys CME/NFLX/AMZN) — behaviour, NOT outcome validation. Requires pipeline pin >= 42d6205 (the footgun fix) — without it demean over the post-veto subset admits 0.",
         "_2026_06_24_demean_monitored_exception": "MONITORED EXCEPTION, operator-approved 2026-06-25. Outcome validation (orchestrator #190) is INSUFFICIENT_AGED_LEDGER until ~60d of realized fwd_60d returns accrue, and the #183 placebo-WF gate is currently unsatisfiable (decision ledger #152 unwired). Enabled to remove a KNOWN calibration artifact, NOT as a validated alpha. The ~60d revert metrics (set demean back to false if orch #190 reports dropped_by_demean_mean_fwd > 0, i.e. demean dropped realized winners, or demean_minus_raw_mean_fwd <= 0) are the path to a PERMANENT decision and are NOT yet evaluable (no realized fwd_60d). Deploy via promote_pin (merge != live).",
-        "_2026_06_29_demean_revert": "EMERGENCY operator-authorized, reversible config rollback to demean OFF, based on NEW fresh-feed evidence (the fundamentals feed first became PIT-fresh 2026-06-29). NOT the formal ~60d revert: those metrics remain not-yet-evaluable and are still the path to a permanent decision. Evidence (admission layer only): live run 2026-06-29-live-5970796e \u2014 the 6 VetoWeakBuys survivors had xs_mean(mu)=+0.0212; demean admits when (mu-xs_mean)>=0.03, demean-OFF admits when mu>=0.03. ON admits 0, OFF admits 6 (FTNT 0.0505/0.0293, SOFI 0.0476/0.0264, NEE 0.0435/0.0223, BLK 0.0414/0.0202, AVGO 0.0373/0.0161, CVX 0.0365/0.0153). SCOPE: this is a single zero-ADMISSION incident on ONE fresh PIT-valid date \u2014 NOT a 'structural zero-buy' regime established over a distribution; the structural risk is ARGUED from the algebra (admission needs mu >= xs_mean+mu_floor ~= 0.051 vs the day's max mu ~= 0.0505) but a distribution of max(mu)-mean(mu) over many fresh dates is NOT yet available (needs the decision ledger to accumulate, ~Aug 2026). This demonstrates the ADMISSION layer only; full QP sizing/turnover replay is a documented follow-up, NOT asserted here. Reverting restores the pre-2026-06-24 raw mu>=0.03 config. Rollback = flip this one boolean."
+        "_2026_06_29_demean_revert": "EMERGENCY operator-authorized, reversible config rollback to demean OFF, based on NEW fresh-feed evidence (the fundamentals feed first became PIT-fresh 2026-06-29). NOT the formal ~60d revert: those metrics remain not-yet-evaluable and are still the path to a permanent decision. Evidence (admission layer only): live run 2026-06-29-live-5970796e — the 6 VetoWeakBuys survivors had xs_mean(mu)=+0.0212; demean admits when (mu-xs_mean)>=0.03, demean-OFF admits when mu>=0.03. ON admits 0, OFF admits 6 (FTNT 0.0505/0.0293, SOFI 0.0476/0.0264, NEE 0.0435/0.0223, BLK 0.0414/0.0202, AVGO 0.0373/0.0161, CVX 0.0365/0.0153). SCOPE: this is a single zero-ADMISSION incident on ONE fresh PIT-valid date — NOT a 'structural zero-buy' regime established over a distribution; the structural risk is ARGUED from the algebra (admission needs mu >= xs_mean+mu_floor ~= 0.051 vs the day's max mu ~= 0.0505) but a distribution of max(mu)-mean(mu) over many fresh dates is NOT yet available (needs the decision ledger to accumulate, ~Aug 2026). This demonstrates the ADMISSION layer only; full QP sizing/turnover replay is a documented follow-up, NOT asserted here. Reverting restores the pre-2026-06-24 raw mu>=0.03 config. Rollback = flip this one boolean.",
+        "_zblend_note": "OPERATOR OVERRIDE 2026-08-04 (verbatim: 'z-blend进prod' / choice '整本切换'): DISABLED: floors on calibrator expected_return, which global_calibration=false makes non-existent here."
       },
       "_2026_06_23_xgb_promotion": "operator-directed prod/shadow switch: XGB alpha158_fund promoted to primary scorer; HF PatchTST moved to readonly shadow. XGB beats PatchTST on 2026-06-23 data (real IC +0.054 vs -0.02; PatchTST fails placebo).",
       "_2026_08_02_patchtst_retirement": "hf_patchtst shadow lane retired per orch#741: served artifact 625d/22x past the RFC #210 SLA, refresh chain never completed, frozen-prereg verdict PERSISTENCE-DRIVEN. Architecture explicitly preserved; any future PatchTST enters as a fresh candidate.",
@@ -1035,25 +1037,40 @@
           "name": "momentum_residual_v0_shadow",
           "kind": "momentum_residual",
           "artifact_path": "artifacts/momentum/momentum_artifact_ledger.jsonl",
-          "_2026_08_02_momentum_shadow_lane": "TRADE slice of the standalone momentum pipeline \u2014 design model#195 (doc/design/2026-08-02-momentum-pipeline-architecture.md \u00a73), build-order amendment model#197, weekly TRAIN job surface orch#757. The job publishes artifacts/momentum/<cutoff>/momentum_residual_v0.json (artifact kind momentum_residual_v0, one dated artifact per weekly cutoff) PLUS the append-only digest-chained ledger this artifact_path pins \u2014 the one cutoff-stable file in the publish set, strategy_dir-relative under the same canonical resolver base as the blend leg's artifacts/shadow path. Serving-handler contract (config kind momentum_residual; pipeline-side registration pending): read the verified ledger tail row, load the dated artifact it names beside the ledger, verify its self-carried content_sha256 \u2014 each week's artifact serves with zero weekly config churn and the ledger chain transitively pins every served artifact. Shadow = data collection, no verdict claimed; promotion via the standard gates (WF lineage + freshness + operator sign-off).",
+          "_2026_08_02_momentum_shadow_lane": "TRADE slice of the standalone momentum pipeline — design model#195 (doc/design/2026-08-02-momentum-pipeline-architecture.md §3), build-order amendment model#197, weekly TRAIN job surface orch#757. The job publishes artifacts/momentum/<cutoff>/momentum_residual_v0.json (artifact kind momentum_residual_v0, one dated artifact per weekly cutoff) PLUS the append-only digest-chained ledger this artifact_path pins — the one cutoff-stable file in the publish set, strategy_dir-relative under the same canonical resolver base as the blend leg's artifacts/shadow path. Serving-handler contract (config kind momentum_residual; pipeline-side registration pending): read the verified ledger tail row, load the dated artifact it names beside the ledger, verify its self-carried content_sha256 — each week's artifact serves with zero weekly config churn and the ledger chain transitively pins every served artifact. Shadow = data collection, no verdict claimed; promotion via the standard gates (WF lineage + freshness + operator sign-off).",
           "_2026_08_02_machine_produced_ledger": "run-surface state: the weekly TRAIN job publishes the ledger + dated artifacts on the serving machine (orch#757); they are never committed, so hosted CI runners cannot resolve this path BY DESIGN. The umbrella gate admits exactly this declared state as INFO (RenQuant#557, inside #554's momentum-contract narrowing) and still runs full chain verification wherever the ledger resolves. Distinct from the retired pending-first-artifact marker, which meant 'not published anywhere yet' (retired in #78 after the first publish)."
         },
         {
           "name": "momentum_fast_v1_shadow",
           "kind": "momentum_residual",
           "artifact_path": "artifacts/momentum_fast/momentum_artifact_ledger.jsonl",
-          "_2026_08_03_fast_momentum_shadow_lane": "FAST clock of the SAME residual-momentum construction (window 63, skip 5; params frozen in renquant-model#199 BEFORE any production run; artifact kind momentum_residual_v1_fast \u2014 model#200 derives kind from params_version). Produced by the SAME weekly Saturday TRAIN job as the v0 lane (#199 build item 2: the orchestrator wrapper runs the train CLI a second, NON-FATAL time with --params-version v1_fast) into its OWN append-only digest-chained ledger \u2014 this artifact_path \u2014 with dated artifacts beside it per cutoff. Serving contract identical to the v0 entry (kind momentum_residual: verified ledger tail -> dated artifact -> content_sha256 + row/artifact cross-field parity + golden reproduction). The dated basename stays momentum_residual_v0.json in this lane too: the pipeline loader hardcodes it (momentum_residual_scorer.MOMENTUM_DATED_ARTIFACT_BASENAME) \u2014 a path convention, not an identity claim; identity is kind/params_version/content_sha256, which are v1_fast here (pipeline follow-up: derive the basename from the ledger row). Shadow = data collection for the operator's daily fast-momentum patrol (#199); no verdict claimed; promotion via the standard gates.",
-          "_2026_08_03_pending_first_artifact": "declared dormant state, BOUNDED by tests/test_strategy_configs.py PENDING_FIRST_ARTIFACT (the v0 precedent, retired there in #78 after the first publish): until the deployed weekly job's first fast-lane run publishes this ledger, the path resolves NOWHERE \u2014 the daily shadow record for this lane is the unresolved-artifact NOT-LOADED record (artifact_resolved false, load_error 'did not resolve to an existing file'; pipeline shadow_scoring), NOT the not_yet_published expected skip, which requires an existing chain-verified zero-row ledger. Delete this key and shrink the named set in the SAME change once the first fast artifact + genesis row are published."
+          "_2026_08_03_fast_momentum_shadow_lane": "FAST clock of the SAME residual-momentum construction (window 63, skip 5; params frozen in renquant-model#199 BEFORE any production run; artifact kind momentum_residual_v1_fast — model#200 derives kind from params_version). Produced by the SAME weekly Saturday TRAIN job as the v0 lane (#199 build item 2: the orchestrator wrapper runs the train CLI a second, NON-FATAL time with --params-version v1_fast) into its OWN append-only digest-chained ledger — this artifact_path — with dated artifacts beside it per cutoff. Serving contract identical to the v0 entry (kind momentum_residual: verified ledger tail -> dated artifact -> content_sha256 + row/artifact cross-field parity + golden reproduction). The dated basename stays momentum_residual_v0.json in this lane too: the pipeline loader hardcodes it (momentum_residual_scorer.MOMENTUM_DATED_ARTIFACT_BASENAME) — a path convention, not an identity claim; identity is kind/params_version/content_sha256, which are v1_fast here (pipeline follow-up: derive the basename from the ledger row). Shadow = data collection for the operator's daily fast-momentum patrol (#199); no verdict claimed; promotion via the standard gates.",
+          "_2026_08_03_pending_first_artifact": "declared dormant state, BOUNDED by tests/test_strategy_configs.py PENDING_FIRST_ARTIFACT (the v0 precedent, retired there in #78 after the first publish): until the deployed weekly job's first fast-lane run publishes this ledger, the path resolves NOWHERE — the daily shadow record for this lane is the unresolved-artifact NOT-LOADED record (artifact_resolved false, load_error 'did not resolve to an existing file'; pipeline shadow_scoring), NOT the not_yet_published expected skip, which requires an existing chain-verified zero-row ledger. Delete this key and shrink the named set in the SAME change once the first fast artifact + genesis row are published."
         }
       ],
-      "shadow_experiment": "renquant_104_patchtst_shadow_after_xgb_promotion"
+      "shadow_experiment": "renquant_104_patchtst_shadow_after_xgb_promotion",
+      "components": [
+        {
+          "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
+          "expected_content_sha256": "sha256:6461b827ab2339a8",
+          "expected_config_fingerprint": "sha256:f8fb2259b2bf1537",
+          "_role": "component 0 = PRODUCTION panel scorer (rank:pairwise xgb); pins copied from the live artifact 2026-07-27 (content abbrev-16 per the shadow_models convention, fp verbatim)"
+        },
+        {
+          "kind": "momentum_residual",
+          "artifact_path": "artifacts/momentum/momentum_artifact_ledger.jsonl",
+          "expected_config_fingerprint": "momentum-v0-fd65161a20b29314",
+          "_role": "component 1 = SLOW momentum residual v0 (12-1, weekly ledger-served; GOAL-8 S1, prereg FROZEN in renquant-orchestrator doc/research/2026-08-04-goal8-s1-zblend-prereg.md). Ledger-pointer leg per pipeline#261: NO expected_content_sha256 (append-only ledger = byte pin stale by design; the chain + tail row's artifact sha are the swap anchors), expected_config_fingerprint = the loader-stamped params fingerprint, measured 2026-08-04 from the live genesis ledger tail (cutoff 2026-08-02, artifact a824c480, n_scored 144)."
+        }
+      ],
+      "_zblend_fullbook_note": "OPERATOR OVERRIDE 2026-08-04 (verbatim: 'z-blend进prod' / choice '整本切换'): prod primary scorer switched to the z(prod)+z(slow momentum) blend, the GOAL-8 destination the operator fixed 2026-08-03. Component[0] pins the governance-served scorer (6461b827, RFC#210); component[1] is the chain-verified momentum ledger leg. artifact_path stays on the panel artifact so P-WF-GATE reads the served gate stamp. Rollback = revert this commit (single-commit config change; artifacts untouched)."
     },
     "universe_floor": {
       "type": "sharpe",
       "threshold": 0.5
     },
     "kelly_sizing": {
-      "enabled": true,
+      "enabled": false,
       "fractional": 0.3,
       "max_concentration": 0.12,
       "min_edge": 0,
@@ -1067,8 +1084,9 @@
       "realized_vol_floor": 0.05,
       "realized_vol_ceiling": 1.5,
       "_sigma_horizon_days_reason": "2026-06-11 Kelly horizon-match fix: f*=mu/sigma^2 requires mu and sigma on the SAME horizon. mu is the 60d calibrator expected return (qp_mu_horizon=60); sigma was annualized (252d), inflating the variance ~4.2x and systematically crushing high-vol names (verified: semis SMCI/DELL/QCOM, which the model ranks #2/#4/#5 by mu, were sized 1.8-4.1% vs 7-12% when matched). The prior 252 was kept only for byte-equivalence ('shadow tests matched 60d sigma' per the 2026-06-03 note); 60 is the dimensionally-correct value. Paired with fractional 0.5->0.3 to keep total deployment sane (~56% vs ~96% at caps). Diagnosis: renquant-orchestrator/scripts/diag_orcl_and_semis.py + verify_buy_book_scenarios.py.",
-      "_2026-05-15_activation_reason": "Phase 3 of calibrator P0 (commits b16e2a1, 00f94ff, 342309e). Pre-fix: mu_none=33 across every panel, Kelly returned 0 for every candidate, QP fell back to uniform 10.17% sizing. Post-fix: c.mu = c.expected_return (bounded \u00b10.20 by train-site + load-site clips); c.sigma = trailing 60d annualized realized vol (clipped to [0.05, 1.50]). Calibrator artifact refitted with bounded ER (2026-05-15 15:52).",
-      "_max_conc_note_20260609": "operator sizing mandate: per-name cap 12% (was 0.35 \u2014 readonly emitted 21.5%/23.5% targets). Aligns kelly cap with BULL_CALM max_position_pct."
+      "_2026-05-15_activation_reason": "Phase 3 of calibrator P0 (commits b16e2a1, 00f94ff, 342309e). Pre-fix: mu_none=33 across every panel, Kelly returned 0 for every candidate, QP fell back to uniform 10.17% sizing. Post-fix: c.mu = c.expected_return (bounded ±0.20 by train-site + load-site clips); c.sigma = trailing 60d annualized realized vol (clipped to [0.05, 1.50]). Calibrator artifact refitted with bounded ER (2026-05-15 15:52).",
+      "_max_conc_note_20260609": "operator sizing mandate: per-name cap 12% (was 0.35 — readonly emitted 21.5%/23.5% targets). Aligns kelly cap with BULL_CALM max_position_pct.",
+      "_zblend_note": "OPERATOR OVERRIDE 2026-08-04 (verbatim: 'z-blend进prod' / choice '整本切换'): DISABLED: use_calibrator_mu wires Kelly mu from the calibrator; with global_calibration off the input does not exist. Sizing falls back to the conv/sigma path the blend lane exercised in shadow."
     },
     "buy_quality_gates": {
       "regime_momentum": {
@@ -1089,9 +1107,9 @@
         "sue_floor": 0,
         "pead_floor": 0,
         "require_either": true,
-        "_disable_reason_2026-05-17": "DISABLED 2026-05-17: Hou-Xue-Zhang 2020 (RFS) Replicating Anomalies showed 65% of published anomalies fail under NYSE-breakpoints + value-weighted returns. The distress / 52w-loser anomaly is among the failed ones in modern data. 5/17 e2e showed DDV vetoed META (rank #1, \u03bc=+0.146, mega-cap $1.4T \u2192 distress effect weakest per FF 2008) on dd=-22.2%. Author's own docstring warned this costs +25pp in BULL_CALM/BULL_STRONG rallies. Config retained for potential regime-conditional re-enablement in BEAR/CHOPPY only."
+        "_disable_reason_2026-05-17": "DISABLED 2026-05-17: Hou-Xue-Zhang 2020 (RFS) Replicating Anomalies showed 65% of published anomalies fail under NYSE-breakpoints + value-weighted returns. The distress / 52w-loser anomaly is among the failed ones in modern data. 5/17 e2e showed DDV vetoed META (rank #1, μ=+0.146, mega-cap $1.4T → distress effect weakest per FF 2008) on dd=-22.2%. Author's own docstring warned this costs +25pp in BULL_CALM/BULL_STRONG rallies. Config retained for potential regime-conditional re-enablement in BEAR/CHOPPY only."
       },
-      "_2026-05-15_activation_reason": "Upgrades A+B from META trade evaluation. A: shrink rank_score by 0.5 when SPY regime is momentum-dominated (BULL_CALM/BULL_VOLATILE + hurst>0.65) but candidate's own 60d return is negative. B: veto candidates >20% below 52w high unless SUE or PEAD score is positive. Catches META-class trades (META today: r60=-4.66%, dd=-22.1%, no SUE \u2192 would have been score\u00d70.5 then vetoed). See Asness-Moskowitz-Pedersen 2013, Hong-Stein 2003."
+      "_2026-05-15_activation_reason": "Upgrades A+B from META trade evaluation. A: shrink rank_score by 0.5 when SPY regime is momentum-dominated (BULL_CALM/BULL_VOLATILE + hurst>0.65) but candidate's own 60d return is negative. B: veto candidates >20% below 52w high unless SUE or PEAD score is positive. Catches META-class trades (META today: r60=-4.66%, dd=-22.1%, no SUE → would have been score×0.5 then vetoed). See Asness-Moskowitz-Pedersen 2013, Hong-Stein 2003."
     },
     "ngboost_head": {
       "enabled": false
@@ -1100,7 +1118,7 @@
       "enabled": false,
       "threshold": 0.5,
       "artifact_path": "backtesting/renquant_104/artifacts/meta-label-exit.json",
-      "_deployment_reason": "2026-05-11: meta-label exit veto. L\u00f3pez de Prado AFML ch.20. Trained 2026-05-11 on 2024-04\u21922025-04 (146 events, class balance 55.5%, AUC 0.554). Threshold 0.5 used in OOS validation; do NOT switch to artifact's F1-optimum 0.30 without re-validation. Fallback: \u00a75.13.10 \u2014 missing artifact \u2192 no-op."
+      "_deployment_reason": "2026-05-11: meta-label exit veto. López de Prado AFML ch.20. Trained 2026-05-11 on 2024-04→2025-04 (146 events, class balance 55.5%, AUC 0.554). Threshold 0.5 used in OOS validation; do NOT switch to artifact's F1-optimum 0.30 without re-validation. Fallback: §5.13.10 — missing artifact → no-op."
     },
     "_2026_06_05_patchtst_promotion": "2026-06-05 operator-directed prod/shadow switch: HF PatchTST pt07 strict seed44 promoted to primary scorer; XGB moved to readonly shadow config.",
     "alpha_to_mu": {
@@ -1111,7 +1129,7 @@
   },
   "panel_ltr": {
     "lookahead_days": 60,
-    "_lookahead_days_reason_2026-05-10": "Production artifact (panel-ltr.alpha158_fund.json trained 2026-05-09) has lookahead_days=60 / label_col=fwd_60d_excess. Prior config value (10) silently diverged from the artifact produced by scripts/train_production_model.py, which hardcodes 60. Setting config to 60 makes panel_ltr.lookahead_days the single source of truth (\u00a75.13.5) and matches the production training horizon (CLAUDE.md project-status: 'XGBoost rank:pairwise + alpha158 + 5 fund + 3 PEAD + 3 SUE = 169 features, fwd_60d label').",
+    "_lookahead_days_reason_2026-05-10": "Production artifact (panel-ltr.alpha158_fund.json trained 2026-05-09) has lookahead_days=60 / label_col=fwd_60d_excess. Prior config value (10) silently diverged from the artifact produced by scripts/train_production_model.py, which hardcodes 60. Setting config to 60 makes panel_ltr.lookahead_days the single source of truth (§5.13.5) and matches the production training horizon (CLAUDE.md project-status: 'XGBoost rank:pairwise + alpha158 + 5 fund + 3 PEAD + 3 SUE = 169 features, fwd_60d label').",
     "data_scan": {
       "enabled": true,
       "strict": true,
@@ -1147,7 +1165,7 @@
       "objective": "rank:pairwise"
     },
     "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
-    "training_notes": "renquant_104 \u2014 panel-LTR primary scorer",
+    "training_notes": "renquant_104 — panel-LTR primary scorer",
     "ngboost": {
       "enabled": true,
       "artifact_path": "artifacts/prod/ngboost-head.alpha158_fund.json",
@@ -1255,7 +1273,7 @@
     "minute": {
       "enabled": false,
       "cache_dir": "data/intraday",
-      "_disabled_reason": "Same as hourly above \u2014 daily model uses daily-only data by default."
+      "_disabled_reason": "Same as hourly above — daily model uses daily-only data by default."
     },
     "macro": {
       "enabled": false,
@@ -1321,7 +1339,7 @@
     "g11_severity": "soft",
     "run_sim_smoke": false,
     "challenger": {
-      "_doc": "Phase 4 \u2014 shadow-mode infrastructure (platform only; live wiring in Phase 4b).",
+      "_doc": "Phase 4 — shadow-mode infrastructure (platform only; live wiring in Phase 4b).",
       "enabled": false,
       "artifact_path": null,
       "name": null,
@@ -1340,7 +1358,7 @@
   "_activation_log": [
     {
       "date": "2026-04-26",
-      "change": "enable QP solver + Gate B (\u03c4=0.10)",
+      "change": "enable QP solver + Gate B (τ=0.10)",
       "rollback": "set rotation.joint_actions.solver=\"greedy\" + ranking.panel_scoring.quality_floor.enabled=false"
     },
     {
@@ -1357,7 +1375,7 @@
     "user_approval": "Option A (2026-05-18, in-session)"
   },
   "min_reentry_days": 5,
-  "_min_reentry_days_provenance": "2026-05-18 13:55 PT: MCD sold +$14.02 yesterday, model picked again today $5 higher = $15 round-trip loss. min_reentry_days=5 (business days) blocks all re-buys within 5d regardless of P/L sign \u2014 compounds with wash_sale_days (\u00a71091, loss only). Default 5d = ~1 trading week, enough for sentiment + technical signals to materially change.",
+  "_min_reentry_days_provenance": "2026-05-18 13:55 PT: MCD sold +$14.02 yesterday, model picked again today $5 higher = $15 round-trip loss. min_reentry_days=5 (business days) blocks all re-buys within 5d regardless of P/L sign — compounds with wash_sale_days (§1091, loss only). Default 5d = ~1 trading week, enough for sentiment + technical signals to materially change.",
   "walkforward": {
     "manifest_path": "/Users/renhao/git/github/RenQuant/backtesting/renquant_104/artifacts/sim/walkforward_manifest_dropsenti_v3.json"
   },
@@ -1372,7 +1390,7 @@
       "authorized_at": "2026-07-16",
       "expires": "2026-08-15",
       "scorer_model_content_sha256": "sha256:656b70be7dac0e61e4f6fae4f538cc33d6044b7e33f12cf6e3992d55996fbb46",
-      "reason": "Operator directive 2026-07-16 (continuing 2026-06-22 '\u5168\u653e\u5bbd + \u4e0a XGB'): admit buys from the diagnostic-only 2026-06-21 XGB scorer while the weekly WF promote remains in chronic placebo-subgate reject. Bound to this scorer's v1 content hash \u2014 any model swap invalidates this authorization. Book was at 94% cash under the unconditional block (incident 2026-07-16)."
+      "reason": "Operator directive 2026-07-16 (continuing 2026-06-22 '全放宽 + 上 XGB'): admit buys from the diagnostic-only 2026-06-21 XGB scorer while the weekly WF promote remains in chronic placebo-subgate reject. Bound to this scorer's v1 content hash — any model swap invalidates this authorization. Book was at 94% cash under the unconditional block (incident 2026-07-16)."
     }
   },
   "_tiered_thresholds_note_20260609": "tier-3 0.60 was GBDT-distribution-calibrated; pt07 top ranks 0.54-0.58. Proper fix = percentile admission (score_db Phase 2).",
@@ -1384,5 +1402,5 @@
     }
   },
   "wash_sale_min_material_npv": 5.0,
-  "_wash_sale_min_material_npv_decision": "OPERATOR DECISION 2026-08-03 (verbatim: \u300c\u4f4e\u4e8e $5 \u653e\u884c\u300d, in response to 'wash sale\u4e0d\u80fd\u5168\u90e8\u6740\u6b7b\uff0c\u8981\u79d1\u5b66\u5730\u770b\u6210\u672c\u5206\u6790'). A buy blocked by a prior loss sale is RELEASED when the wash-sale NPV tax cost is below $5.00; blocks at >= $5.00 stand. Mechanism: pipeline#251 (merged, A/B byte-invariance proven at floor 0); policy design s104#76; shadow lanes ran the $1.00 floor since 2026-08-02. Evidence basis: the 07-28 incident table \u2014 mass blocks zeroed buys on 3 of 5 sessions protecting ~$15 of tax across 8 names while $6.8k cash idled; measured per-block NPV costs on the shadow lanes $0.04-$0.99. This key is decision logic ONLY at the buy-admission margin; tax REPORTING is unaffected (no-tax-driven-logic mandate untouched)."
+  "_wash_sale_min_material_npv_decision": "OPERATOR DECISION 2026-08-03 (verbatim: 「低于 $5 放行」, in response to 'wash sale不能全部杀死，要科学地看成本分析'). A buy blocked by a prior loss sale is RELEASED when the wash-sale NPV tax cost is below $5.00; blocks at >= $5.00 stand. Mechanism: pipeline#251 (merged, A/B byte-invariance proven at floor 0); policy design s104#76; shadow lanes ran the $1.00 floor since 2026-08-02. Evidence basis: the 07-28 incident table — mass blocks zeroed buys on 3 of 5 sessions protecting ~$15 of tax across 8 names while $6.8k cash idled; measured per-block NPV costs on the shadow lanes $0.04-$0.99. This key is decision logic ONLY at the buy-admission margin; tax REPORTING is unaffected (no-tax-driven-logic mandate untouched)."
 }

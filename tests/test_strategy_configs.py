@@ -112,7 +112,13 @@ def test_conviction_gate_demean_is_off_and_mu_floor_pinned() -> None:
     for name in ("strategy_config.json", "strategy_config.golden.json"):
         cfg = load_strategy_config(CONFIG_DIR / name)
         gate = cfg["ranking"]["panel_scoring"]["conviction_gate"]
-        assert gate["enabled"] is True
+        # OPERATOR OVERRIDE 2026-08-04 ('整本切换'): the z-blend primary has no
+        # calibrator expected_return, so the gate is DISABLED (unit change), and
+        # the disable must carry its dated note. The demean/mu_floor pins stay
+        # asserted on the RECORDED values so a future re-enable inherits the
+        # PR #34 emergency-revert settings, not silent drift.
+        assert gate["enabled"] is False
+        assert "OPERATOR OVERRIDE 2026-08-04" in gate["_zblend_note"]
         assert gate["demean_cross_sectional"] is False, (
             f"{name}: demean_cross_sectional must be false (emergency revert PR #34)"
         )
@@ -141,14 +147,17 @@ def test_bull_calm_new_buys_and_panel_scorer_contract_are_explicit() -> None:
 
     assert cfg["regime_params"]["BULL_CALM"]["disable_new_buys"] is False
     assert panel["enabled"] is True
-    assert panel["kind"] == "xgb"
+    # OPERATOR OVERRIDE 2026-08-04 ('整本切换'): primary is the z-blend; the
+    # panel artifact stays at artifact_path so P-WF-GATE reads the served
+    # governance license from component[0].
+    assert panel["kind"] == "blend"
     assert panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
-    assert global_cal["enabled"] is True
-    assert global_cal["strict_scorer_match"] is True
-    assert global_cal["artifact_path"] == "artifacts/prod/panel-rank-calibration.json"
-    # Conviction gate (renquant-pipeline #140) is the quality guard that makes the
-    # XGB primary deployable: only buy calibrated E[R-SPY] >= 3%.
-    assert panel["conviction_gate"]["enabled"] is True
+    comps = panel["components"]
+    assert comps[0]["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
+    assert comps[1]["kind"] == "momentum_residual"
+    assert global_cal["enabled"] is False
+    assert "OPERATOR OVERRIDE 2026-08-04" in global_cal["_zblend_note"]
+    assert panel["conviction_gate"]["enabled"] is False
     assert panel["conviction_gate"]["mu_floor"] == 0.03
     assert panel["regime_admission"]["enabled"] is False
     # Legacy ops-shadow file (strategy_config.shadow.json) still carries the
@@ -183,15 +192,15 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
     assert "XGB" in promotion_note
     assert "PatchTST moved to readonly shadow" in promotion_note
 
-    assert panel["kind"] == golden_panel["kind"] == "xgb"
+    # OPERATOR OVERRIDE 2026-08-04 ('整本切换'): the 06-23 XGB promotion notes
+    # remain as HISTORY; the current primary is the z-blend and its own
+    # override note + manifest carry the audit trail forward.
+    assert panel["kind"] == golden_panel["kind"] == "blend"
+    assert "OPERATOR OVERRIDE 2026-08-04" in panel["_zblend_fullbook_note"]
     assert panel["artifact_path"] == golden_panel["artifact_path"]
     assert panel["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
-    assert panel["global_calibration"] == golden_panel["global_calibration"]
-    assert panel["global_calibration"]["strict_scorer_match"] is True
-    assert (
-        panel["global_calibration"]["artifact_path"]
-        == "artifacts/prod/panel-rank-calibration.json"
-    )
+    assert panel["global_calibration"]["enabled"] is False
+    assert golden_panel["global_calibration"]["enabled"] is False
     assert panel["conviction_gate"]["mu_floor"] == 0.03
     assert panel["regime_admission"]["enabled"] is False
     assert (
@@ -261,16 +270,26 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
 
 
 def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
+    """HISTORICAL manifest integrity + SUPERSESSION chain.
+
+    OPERATOR OVERRIDE 2026-08-04 ('整本切换'): the runtime configs moved to the
+    z-blend primary, recorded in zblend_prod_artifact_manifest.json (same
+    operator_override_directive_audit shape as this one, superseding it). The
+    xgb manifest stays UNTOUCHED as the 06-23 directive's historical record —
+    this test now pins (a) the historical document's own integrity and (b) the
+    supersession chain + the NEW manifest matching the runtime."""
     cfg = load_strategy_config(CONFIG_DIR / "strategy_config.json")
     golden = load_strategy_config(CONFIG_DIR / "strategy_config.golden.json")
     shadow = load_strategy_config(CONFIG_DIR / "strategy_config.shadow.json")
     manifest = _load("xgb_prod_artifact_manifest.json")
+    zmanifest = _load("zblend_prod_artifact_manifest.json")
     panel = cfg["ranking"]["panel_scoring"]
     golden_panel = golden["ranking"]["panel_scoring"]
     shadow_panel = shadow["ranking"]["panel_scoring"]
     primary = manifest["production_primary"]
     primary_cal = primary["global_calibration"]
 
+    # (a) the 06-23 historical record keeps its own internal integrity
     assert manifest["schema_version"] == 1
     assert manifest["strategy"] == "renquant_104"
     assert manifest["manifest_role"] == "operator_override_directive_audit"
@@ -278,30 +297,30 @@ def test_xgb_prod_artifact_manifest_matches_runtime_configs() -> None:
         "operator_directed_prod_shadow_switch"
     )
     assert manifest["promotion_boundary"]["primary_model_family"] == "xgb"
-    assert manifest["promotion_boundary"]["acceptance_status"] == (
-        "operator_override_with_residual_controls"
-    )
-
-    # Scope is narrowed to an exceptional, withdrawable override — NOT a promotion.
-    scope = manifest["scope_claim"]
-    assert "operator directive" in scope["this_is"]
-    assert "normal production promotion" in scope["this_is_not"]
-    assert scope["positive_claims_only"] and scope["explicitly_not_claimed"]
-    assert any("does not" in c.lower() for c in scope["explicitly_not_claimed"])
-
-    assert primary["kind"] == panel["kind"] == golden_panel["kind"] == "xgb"
-    assert primary["artifact_path"] == panel["artifact_path"] == golden_panel["artifact_path"]
+    assert primary["kind"] == "xgb"
     assert primary["artifact_path_role"] == "production_primary"
-
-    runtime_cal = panel["global_calibration"]
-    assert primary_cal["enabled"] == runtime_cal["enabled"] is True
-    assert primary_cal["strict_scorer_match"] == runtime_cal["strict_scorer_match"] is True
-    assert primary_cal["artifact_path"] == runtime_cal["artifact_path"]
-    assert primary_cal["artifact_path"] == golden_panel["global_calibration"]["artifact_path"]
     assert primary_cal["artifact_path_role"] == "production_primary_calibrator"
+    assert primary["conviction_gate"]["mu_floor"] == 0.03
 
-    assert primary["conviction_gate"]["mu_floor"] == panel["conviction_gate"]["mu_floor"] == 0.03
-    assert primary["regime_admission"]["enabled"] == panel["regime_admission"]["enabled"] is False
+    # (b) supersession chain: the NEW manifest matches the CURRENT runtime
+    assert zmanifest["manifest_role"] == "operator_override_directive_audit"
+    assert zmanifest["supersedes"].startswith("xgb_prod_artifact_manifest.json")
+    assert zmanifest["promotion_boundary"]["decision"] == (
+        "operator_directed_fullbook_scorer_switch"
+    )
+    assert zmanifest["promotion_boundary"]["primary_model_family"] == "blend"
+    zscope = zmanifest["scope_claim"]
+    assert "operator directive" in zscope["this_is"]
+    assert "normal production promotion" in zscope["this_is_not"]
+    assert zscope["positive_claims_only"] and zscope["explicitly_not_claimed"]
+    zprimary = zmanifest["production_primary"]
+    assert zprimary["kind"] == panel["kind"] == golden_panel["kind"] == "blend"
+    assert zprimary["artifact_path"] == panel["artifact_path"]
+    assert zprimary["global_calibration"]["enabled"] is False
+    assert panel["global_calibration"]["enabled"] is False
+    assert zmanifest["promotion_boundary"]["rollback"]
+    assert zmanifest["promotion_boundary"]["review_condition"]
+    assert panel["regime_admission"]["enabled"] is False
 
     # orch#741 retirement: the readonly_shadow (hf_patchtst) entry is removed
     # from the manifest and replaced by the retirement narrative key. The
@@ -772,13 +791,14 @@ def test_shadow_ab_leaves_prod_and_golden_at_production_baseline() -> None:
     for name in ("strategy_config.json", "strategy_config.golden.json"):
         cfg = load_strategy_config(CONFIG_DIR / name)
         panel = cfg["ranking"]["panel_scoring"]
-        assert panel["kind"] == "xgb", f"{name}: production primary stays XGB"
-        assert panel["buy_floor"] == "adaptive_mean_std", name
-        assert panel["buy_floor_std_mult"] == 1, (
-            f"{name}: production floor multiple stays 1.0σ — flipping it is a "
-            "live-book behavior change requiring the §2a verdict memo + "
-            "pre-registration gate + Codex review in its own PR"
-        )
+        # OPERATOR OVERRIDE 2026-08-04 ('整本切换'): the production baseline the
+        # §2a shadow arms must not leak into is now the z-blend primary with the
+        # unit-dependent floors NULLED (dated notes asserted). The §2a treatment
+        # keys that remain live (kelly fractional numbers, sizing) keep their pins.
+        assert panel["kind"] == "blend", f"{name}: production primary is the z-blend"
+        assert panel["buy_floor"] is None, name
+        assert "OPERATOR OVERRIDE 2026-08-04" in panel["_buy_floor_reason"], name
+        assert cfg["ranking"]["kelly_sizing"]["enabled"] is False, name
         assert cfg["ranking"]["kelly_sizing"]["fractional"] == 0.3, name
         assert cfg["ranking"]["kelly_sizing"]["max_concentration"] == 0.12, name
         assert cfg["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.12, name
