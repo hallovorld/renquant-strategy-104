@@ -1140,7 +1140,7 @@ def test_shadow_momentum_profile_semantic_pins() -> None:
     """Pin the shadow_momentum lane profile (pipeline#259 primary surface;
     operator directive: show the momentum model's orders).
 
-    The profile is strategy_config.shadow_blend.json + EXACTLY three deltas:
+    The profile is strategy_config.shadow_blend.json + EXACTLY six deltas:
       1. kind="momentum_residual" + artifact_path = the lane's machine-produced
          digest-chained ledger (the serving loader follows the verified tail
          row to the dated artifact);
@@ -1149,7 +1149,16 @@ def test_shadow_momentum_profile_semantic_pins() -> None:
          absent/mismatched/non-string pin AND on an unstamped artifact, so
          this pin is load-bearing, not documentation;
       3. no components (single lookup scorer; the blend's two-leg pin block
-         does not apply).
+         does not apply);
+      4. realized-vol EXCLUSION disabled (2026-08-03, operator directive: the
+         flat 60% cap decapitated the signal — the model's top-10 was 9/10
+         semis, all vol-gated, leaving ranks 13-16 as the slate). Risk moves
+         to sigma-scaled SIZING + the per-name/sector caps, which stay ON;
+      5. the foreign-ER conjunct disabled (alpha_to_mu vetoed ranks 14-16) —
+         the lane's own direction gate, positive momentum z, stays ON;
+      6. wash_sale_days=0 (a hypothetical lane pays no tax; binary blocks
+         removed the model's ranks 11-12 on 'P/L unknown'). The LIVE lane's
+         filter is untouched.
     Everything else — including every delta-6 raw-domain null, which applies
     identically because momentum scores are uncalibrated z's — must stay
     semantically identical to the blend profile, which is itself pinned
@@ -1167,6 +1176,12 @@ def test_shadow_momentum_profile_semantic_pins() -> None:
     assert panel["expected_config_fingerprint"] == "momentum-v0-fd65161a20b29314"
     assert "components" not in panel
 
+    # 4-6. the lane-risk deltas, exact.
+    assert mom["risk_gates"]["realized_vol"]["enabled"] is False
+    assert panel["require_positive_expected_return_for_buy"] is False
+    assert panel.get("require_positive_raw_signal_for_buy") is None  # default ON
+    assert mom["wash_sale_days"] == 0
+
     # The raw-domain coherence set carries over verbatim (delta 6 of the blend
     # profile — same reason: uncalibrated scores, no probability thresholds).
     assert panel["buy_floor"] is None
@@ -1183,4 +1198,7 @@ def test_shadow_momentum_profile_semantic_pins() -> None:
         p.pop("components", None)
         p.pop("artifact_path", None)
         p.pop("expected_config_fingerprint", None)
+        p.pop("require_positive_expected_return_for_buy", None)
+        cfg.pop("risk_gates", None)
+        cfg.pop("wash_sale_days", None)
     assert mom_norm == blend_norm
