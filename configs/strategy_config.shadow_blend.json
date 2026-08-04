@@ -160,7 +160,8 @@
   "min_hold_days": 5,
   "model_sell": {
     "panel_veto": {
-      "enabled": true,
+      "enabled": false,
+      "_shadow_blend_note": "DISABLED for the blend lane 2026-08-03: min_rank_score=0.5 is a calibrated-probability threshold; this lane's rank_score is a raw z-composite (global_calibration disabled by design), so the veto would compare units that do not exist here. Disabled = every model_sell fires = the MORE conservative shadow. Re-enable only with a composite-fingerprint calibrator (tracked follow-up).",
       "min_rank_score": 0.5,
       "max_streak_to_veto": 5
     }
@@ -753,10 +754,11 @@
     "min_rotation_hold_days": 7,
     "lt_protection_days": 30,
     "max_rotations_per_bar": 1,
-    "panel_buy_floor": 0.3,
-    "panel_sell_floor": 0.2,
+    "panel_buy_floor": null,
+    "panel_sell_floor": null,
     "panel_buy_top_n": 3,
-    "panel_buy_rank_floor": 0.2,
+    "panel_buy_rank_floor": null,
+    "_shadow_blend_floor_note": "NULLED for the blend lane 2026-08-03: these are calibrated-probability floors (task_rotation treats null as disabled; task_joint_actions maps null rank_floor to 0.0 = off — both verified in the pinned pipeline). This lane's rank_score is a raw z-composite, so absolute probability constants are unit-mismatched here. Admission stays ORDINAL (panel_buy_top_n, slots, risk gates) — coherent in any score domain.",
     "joint_actions": {
       "enabled": false,
       "fee_pct": 0.0005,
@@ -776,14 +778,12 @@
       "_qp_min_share_floor_pct_reason": "2026-05-24 Codex QP safety fix: disabled whole-share floor. Continuous Markowitz/Boyd QP weights are the constraint contract; integer execution may round down when target delta is below one share, but must not round up to one share and exceed solver target/caps. Re-enable only with fractional-share execution or a mixed-integer lot-size optimizer.",
       "qp_admission_gate": {
         "enabled": true,
-        "min_rank_score": 0.55,
+        "min_rank_score": null,
         "min_panel_score": null,
-        "topup_min_rank_score": 0.55,
+        "topup_min_rank_score": null,
         "topup_min_panel_score": null,
-        "min_expected_return_by_regime": {
-          "BULL_CALM": 0.01,
-          "default": 0.005
-        },
+        "min_expected_return_by_regime": null,
+        "_shadow_blend_gate_note": "NULLED for the blend lane 2026-08-03 (null = designed skip, verified in the pinned pipeline's qp admission gate): min_rank_score 0.55 is a calibrated-probability constant and this lane's rank_score is a raw z-composite; min_expected_return needs calibrator ER, which never exists here (global_calibration disabled by design) — on the current pin a missing ER is a REFUSAL (qp_admission_expected_return), so leaving the map set would zero the lane's buys even after the buy-floor fix. Slots/sigma/structural checks in this gate remain active. joint_actions is disabled in this lane anyway; nulling removes the incoherent knobs from the reviewed surface.",
         "_min_expected_return_reason": "2026-05-24 Codex QP alpha contract: QP may size only candidates with finite calibrated expected-return evidence on the same 60d horizon as panel_ltr/QP μ. Requiring 4% 60d expected excess return in BULL_CALM keeps thin probability-only signals from becoming trades after friction and benchmark-sleeve opportunity cost.",
         "_default_min_expected_return_reason": "2026-06-10 BL-4 deep-audit: a by_regime map with no global silently disabled this floor in BULL_VOLATILE/CHOPPY/BEAR (those regimes were absent from the map, so _qp_admission_gate_value returned None and the gate went dark). The default restores a non-zero ER floor in every un-listed regime. 0.005 is a conservative starting point (half of BULL_CALM's 0.01); operator may prefer a stricter floor in BEAR/CHOPPY. Requires pipeline default-key support (PR #93).",
         "respect_open_slots": true,
@@ -935,11 +935,12 @@
         }
       ],
       "nan_prone_cols": [],
-      "buy_floor": "adaptive_mean_std",
+      "buy_floor": null,
       "buy_floor_adaptive_cap": 0.3,
       "buy_floor_min": 0.2,
       "buy_floor_std_mult": 1,
-      "_buy_floor_reason": "2026-05-21 Codex audit: use uncapped cross-sectional mean+1*std on calibrated rank_score. The prior adaptive_mean_std_cap mode capped the floor at 0.30; once calibrated scores clustered around 0.55-0.65, the floor became a no-op and admitted nearly every candidate. This follows cross-sectional normalization/ranking practice (Qlib CSRankNorm/CSZFillna) while preserving the no-signal behavior when mean+std exceeds all compressed scores. adaptive_mean_std_cap remains for old experiments only.",
+      "_buy_floor_reason": "2026-05-21 Codex audit (primary lane): use uncapped cross-sectional mean+1*std on calibrated rank_score. Kept verbatim for provenance; superseded in THIS lane by _shadow_blend_buy_floor_note below.",
+      "_shadow_blend_buy_floor_note": "NULLED for the blend lane 2026-08-03. The 2026-08-02 pipeline pin deployed the rank_score domain guard: any buy_floor mode fail-closes when calibration did not run (rank_score_domain_uncalibrated — this is exactly what emptied 87 candidates on 08-03 and flipped the lane STRUCTURAL_BLOCK; runs through 07-31 'passed' only because raw z's were compared against a floor whose min/cap constants assume probabilities). buy_floor: null is the guard's DESIGNED explicit-disable path (early return before the guard). Admission for this lane is ordinal-only: selection top slots + risk gates + legacy sizing — the same funnel shape 07-30/31 actually exercised. Durable path back to a floored lane = fit a calibrator stamped against the blend composite fingerprint (tracked follow-up); do NOT re-enable a floor without it.",
       "rotation_advantage": 0,
       "sizing": {
         "enabled": true,
