@@ -59,6 +59,45 @@ fail-close. A missing calibrator ER is a REFUSAL on the current pin
 (`qp_admission_expected_return`), so `min_expected_return_by_regime` must be
 null here, not merely unlisted.
 
+## Execution plan (codex CR on #80: this is a shadow EXPERIMENT, not cleanup)
+
+**Baseline.** The PRIMARY lane's daily decisions over the same sessions
+(same funnel, prod scorer, same broker reads) — recorded in
+`runs.alpaca.db` / score_db; plus the blend lane's own pre-fix state
+(fail-closed, zero information) as the null.
+
+**Window / sample.** 20 trading sessions from the first scheduled green run
+(≈4 weeks). Sample = the lane's decision records in
+`runs.alpaca_shadow_blend.db` + its score_db rows + the daily ntfy line;
+no mid-window config changes to the lane (freeze).
+
+**Primary outcomes (measurements, preregistered here, no success claim):**
+1. Lane completion rate: sessions ending without STRUCTURAL_BLOCK /
+   fail-close. Mechanical health bar: ≥ 19/20.
+2. Decision divergence vs primary: daily top-10 overlap and count of
+   hypothetical buys the primary did not make (and vice versa).
+3. Observational forward returns of divergent picks at 20d/60d vs the
+   primary's picks — logged for the GOAL-4 premise re-assessment, NOT a
+   promotion criterion (no gate, no capital implication).
+
+**Guardrails.**
+- Lane stays READONLY (structural: readonly-alpaca wrapper swallows writes).
+- No absolute probability threshold may be re-introduced without a
+  composite-fingerprint calibrator (the semantic-pin test enforces).
+- Fail-close > 2 consecutive sessions → investigate; > 5 → disable Step 5
+  via the reviewed script gate pending fix.
+
+**Continue / revert decision rule (end of window).**
+- CONTINUE (lane stays as standing shadow) iff completion ≥ 19/20 AND the
+  ordinal admission is non-degenerate: neither >5 hypothetical buys/session
+  on >50% of sessions (over-admission) nor 0 buys on ≥18/20 sessions
+  (under-admission, indistinguishable from fail-closed).
+- Otherwise REVERT this delta (git revert + runtime re-sync; the lane
+  returns to loud fail-close) and the durable path is the composite
+  calibrator before any retry.
+- Any graduation beyond shadow requires that calibrator plus its own
+  preregistered gate — explicitly out of this PR's scope.
+
 ## Deliberately NOT done
 
 - No calibrator fitted for the composite. That is the durable path back to a
