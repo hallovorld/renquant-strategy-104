@@ -200,10 +200,11 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
 
     # orch#741 retirement: the served hf_patchtst shadow lane is GONE from
     # shadow_models (in prod AND golden), the retirement narrative key exists
-    # in both, and prod/golden stay consistent. Two lanes remain: the clf
-    # blend leg (live) and the momentum lane (GOAL-7 slice 4 — PENDING the
-    # slice-5 grant batch, see PENDING_FIRST_ARTIFACT at the end of this
-    # file).
+    # in both, and prod/golden stay consistent. Three lanes remain: the clf
+    # blend leg (live), the slow momentum lane (GOAL-7 slice 4, live since
+    # the 2026-08-02 grant batch), and the FAST momentum lane
+    # (renquant-model#199 item 3 — PENDING its first weekly publish, see
+    # PENDING_FIRST_ARTIFACT at the end of this file).
     for cfg_panel in (panel, golden_panel):
         assert all(
             m["name"] != "hf_patchtst_pt07_strict_seed44_previous_primary"
@@ -238,6 +239,13 @@ def test_xgb_operator_promotion_contract_is_auditable() -> None:
             "artifact_path": "artifacts/momentum/momentum_artifact_ledger.jsonl",
             "_2026_08_02_momentum_shadow_lane": "TRADE slice of the standalone momentum pipeline — design model#195 (doc/design/2026-08-02-momentum-pipeline-architecture.md §3), build-order amendment model#197, weekly TRAIN job surface orch#757. The job publishes artifacts/momentum/<cutoff>/momentum_residual_v0.json (artifact kind momentum_residual_v0, one dated artifact per weekly cutoff) PLUS the append-only digest-chained ledger this artifact_path pins — the one cutoff-stable file in the publish set, strategy_dir-relative under the same canonical resolver base as the blend leg's artifacts/shadow path. Serving-handler contract (config kind momentum_residual; pipeline-side registration pending): read the verified ledger tail row, load the dated artifact it names beside the ledger, verify its self-carried content_sha256 — each week's artifact serves with zero weekly config churn and the ledger chain transitively pins every served artifact. Shadow = data collection, no verdict claimed; promotion via the standard gates (WF lineage + freshness + operator sign-off).",
             "_2026_08_02_machine_produced_ledger": "run-surface state: the weekly TRAIN job publishes the ledger + dated artifacts on the serving machine (orch#757); they are never committed, so hosted CI runners cannot resolve this path BY DESIGN. The umbrella gate admits exactly this declared state as INFO (RenQuant#557, inside #554's momentum-contract narrowing) and still runs full chain verification wherever the ledger resolves. Distinct from the retired pending-first-artifact marker, which meant 'not published anywhere yet' (retired in #78 after the first publish).",
+        },
+        {
+            "name": "momentum_fast_v1_shadow",
+            "kind": "momentum_residual",
+            "artifact_path": "artifacts/momentum_fast/momentum_artifact_ledger.jsonl",
+            "_2026_08_03_fast_momentum_shadow_lane": "FAST clock of the SAME residual-momentum construction (window 63, skip 5; params frozen in renquant-model#199 BEFORE any production run; artifact kind momentum_residual_v1_fast — model#200 derives kind from params_version). Produced by the SAME weekly Saturday TRAIN job as the v0 lane (#199 build item 2: the orchestrator wrapper runs the train CLI a second, NON-FATAL time with --params-version v1_fast) into its OWN append-only digest-chained ledger — this artifact_path — with dated artifacts beside it per cutoff. Serving contract identical to the v0 entry (kind momentum_residual: verified ledger tail -> dated artifact -> content_sha256 + row/artifact cross-field parity + golden reproduction). The dated basename stays momentum_residual_v0.json in this lane too: the pipeline loader hardcodes it (momentum_residual_scorer.MOMENTUM_DATED_ARTIFACT_BASENAME) — a path convention, not an identity claim; identity is kind/params_version/content_sha256, which are v1_fast here (pipeline follow-up: derive the basename from the ledger row). Shadow = data collection for the operator's daily fast-momentum patrol (#199); no verdict claimed; promotion via the standard gates.",
+            "_2026_08_03_pending_first_artifact": "declared dormant state, BOUNDED by tests/test_strategy_configs.py PENDING_FIRST_ARTIFACT (the v0 precedent, retired there in #78 after the first publish): until the deployed weekly job's first fast-lane run publishes this ledger, the path resolves NOWHERE — the daily shadow record for this lane is the unresolved-artifact NOT-LOADED record (artifact_resolved false, load_error 'did not resolve to an existing file'; pipeline shadow_scoring), NOT the not_yet_published expected skip, which requires an existing chain-verified zero-row ledger. Delete this key and shrink the named set in the SAME change once the first fast artifact + genesis row are published.",
         },
     ]
     assert (
@@ -1095,8 +1103,22 @@ def test_live_and_golden_agree_about_the_floor() -> None:
 # published, entry merged in #77, pin advanced in RenQuant#555) and the
 # momentum key was deleted with this shrink — the set is EMPTY until a future
 # lane declares a pending state by name.
-PENDING_FIRST_ARTIFACT: set[str] = set()
+#
+# 2026-08-03: the FAST momentum lane (renquant-model#199 item 3) is exactly
+# that future lane. Its ledger (artifacts/momentum_fast/...) is written by the
+# SAME weekly job's new second, non-fatal train step (#199 item 2) — nothing
+# publishes it until that wrapper change is deployed AND a Saturday firing
+# runs the fast lane, so the entry declares the pending state by name. While
+# pending, the daily shadow record for the lane is the unresolved-artifact
+# NOT-LOADED record (artifact_resolved false — pipeline shadow_scoring's
+# missing-file path), NOT the not_yet_published expected skip (that skip
+# requires an existing chain-verified zero-row ledger). The post-first-publish
+# follow-up PR deletes the entry's _2026_08_03_pending_first_artifact key and
+# shrinks this set back to empty in the same change (the v0/#78 precedent).
+PENDING_FIRST_ARTIFACT: set[str] = {"momentum_fast_v1_shadow"}
 MOMENTUM_SHADOW_LEDGER_PATH = "artifacts/momentum/momentum_artifact_ledger.jsonl"
+FAST_MOMENTUM_SHADOW_LEDGER_PATH = (
+    "artifacts/momentum_fast/momentum_artifact_ledger.jsonl")
 
 
 def test_pending_first_artifact_guard_names_exactly_the_momentum_entry() -> None:
@@ -1116,24 +1138,35 @@ def test_pending_first_artifact_guard_names_exactly_the_momentum_entry() -> None
         )
 
 
-def test_momentum_shadow_entry_pins_the_ledger_path_with_no_repo_escape() -> None:
-    """The `../../` incident class, asserted at the source: the momentum
-    artifact_path is repo-relative (canonical resolver: strategy_dir-first,
-    same base the blend leg resolves under) and contains no `..` escape."""
+def test_momentum_shadow_entries_pin_their_ledger_paths_with_no_repo_escape() -> None:
+    """The `../../` incident class, asserted at the source: each momentum
+    lane's artifact_path is repo-relative (canonical resolver:
+    strategy_dir-first, same base the blend leg resolves under), contains no
+    `..` escape, and the two lanes pin DISTINCT sibling directories — a fast
+    entry reusing the slow ledger would make the serving loader alternate
+    lanes off one tail (model#199 item 3)."""
+    lanes = {
+        "momentum_residual_v0_shadow": MOMENTUM_SHADOW_LEDGER_PATH,
+        "momentum_fast_v1_shadow": FAST_MOMENTUM_SHADOW_LEDGER_PATH,
+    }
     for name in LIVE_PROFILES:
         panel = _load(name)["ranking"]["panel_scoring"]
-        matches = [
-            m
-            for m in panel.get("shadow_models") or []
-            if m.get("name") == "momentum_residual_v0_shadow"
-        ]
-        assert len(matches) == 1, f"{name}: momentum shadow entry missing"
-        entry = matches[0]
-        assert entry["kind"] == "momentum_residual"
-        assert entry["artifact_path"] == MOMENTUM_SHADOW_LEDGER_PATH
-        p = Path(entry["artifact_path"])
-        assert not p.is_absolute()
-        assert ".." not in p.parts
+        for lane_name, ledger_path in lanes.items():
+            matches = [
+                m
+                for m in panel.get("shadow_models") or []
+                if m.get("name") == lane_name
+            ]
+            assert len(matches) == 1, f"{name}: {lane_name} entry missing"
+            entry = matches[0]
+            assert entry["kind"] == "momentum_residual"
+            assert entry["artifact_path"] == ledger_path
+            p = Path(entry["artifact_path"])
+            assert not p.is_absolute()
+            assert ".." not in p.parts
+    assert MOMENTUM_SHADOW_LEDGER_PATH != FAST_MOMENTUM_SHADOW_LEDGER_PATH
+    assert (Path(FAST_MOMENTUM_SHADOW_LEDGER_PATH).parent
+            != Path(MOMENTUM_SHADOW_LEDGER_PATH).parent)
 
 
 def test_shadow_momentum_profile_semantic_pins() -> None:
