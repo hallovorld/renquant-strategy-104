@@ -1385,3 +1385,61 @@ def test_f2_fast_blend_profile_semantic_pins() -> None:
     assert diffs == [], (
         f"undeclared drift between fast and slow blend profiles: {diffs}"
     )
+
+
+def _leaves_for_fleet(d, prefix=""):
+    out = {}
+    for k, v in d.items():
+        p = f"{prefix}/{k}"
+        if isinstance(v, dict):
+            out.update(_leaves_for_fleet(v, p))
+        else:
+            out[p] = v
+    return out
+
+
+def _assert_only_declared_fleet_deltas(variant, base):
+    DECLARED = ("/ranking/panel_scoring/components",
+                "/ranking/panel_scoring/_shadow_blend_momentum_profile")
+    lv, lb = _leaves_for_fleet(variant), _leaves_for_fleet(base)
+    diffs = sorted(
+        k for k in set(lv) | set(lb)
+        if lv.get(k, "<ABSENT>") != lb.get(k, "<ABSENT>")
+        and not any(k == d or k.startswith(d + "/") for d in DECLARED)
+    )
+    assert diffs == [], f"undeclared fleet-profile drift: {diffs}"
+
+
+def test_f1_rb_mom_profile_semantic_pins() -> None:
+    """GOAL-9 F1 (orch#794): z(prod)+z(clf)+z(slow momentum). Mechanical
+    two-delta guard vs the slow-blend base (the s104#89 pattern)."""
+    f1 = _load("strategy_config.shadow_blend_rb_mom.json")
+    base = _load("strategy_config.shadow_blend_momentum.json")
+    comps = f1["ranking"]["panel_scoring"]["components"]
+    assert len(comps) == 3
+    assert comps[0]["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
+    assert comps[1]["artifact_path"] == "artifacts/shadow/panel-clf.top-decile.fwd60.json"
+    # clf pins copied VERBATIM from the prod config's shadow_models[0] entry
+    prod_clf = _load("strategy_config.json")["ranking"]["panel_scoring"]["shadow_models"][0]
+    assert comps[1]["expected_content_sha256"] == prod_clf["expected_content_sha256"]
+    assert comps[1]["expected_config_fingerprint"] == prod_clf["expected_config_fingerprint"]
+    assert comps[2]["kind"] == "momentum_residual"
+    assert comps[2]["artifact_path"] == "artifacts/momentum/momentum_artifact_ledger.jsonl"
+    assert comps[2]["expected_config_fingerprint"].startswith("momentum-v0-")
+    _assert_only_declared_fleet_deltas(f1, base)
+
+
+def test_f3_rb_fast_profile_semantic_pins() -> None:
+    """GOAL-9 F3: z(prod)+z(clf)+z(FAST momentum); fast leg keeps the F2
+    pending contract (marker present, fp/byte pins absent until genesis)."""
+    f3 = _load("strategy_config.shadow_blend_rb_fast.json")
+    base = _load("strategy_config.shadow_blend_momentum_fast.json")
+    comps = f3["ranking"]["panel_scoring"]["components"]
+    assert len(comps) == 3
+    assert comps[1]["artifact_path"] == "artifacts/shadow/panel-clf.top-decile.fwd60.json"
+    c2 = comps[2]
+    assert c2["artifact_path"] == "artifacts/momentum_fast/momentum_artifact_ledger.jsonl"
+    assert len([k for k in c2 if k.endswith("_pending_first_artifact")]) == 1
+    assert "expected_config_fingerprint" not in c2
+    assert "expected_content_sha256" not in c2
+    _assert_only_declared_fleet_deltas(f3, base)
