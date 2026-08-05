@@ -1443,3 +1443,40 @@ def test_f3_rb_fast_profile_semantic_pins() -> None:
     assert "expected_config_fingerprint" not in c2
     assert "expected_content_sha256" not in c2
     _assert_only_declared_fleet_deltas(f3, base)
+
+
+def test_every_blend_component_kind_is_in_the_loader_vocabulary() -> None:
+    """MEASURED 2026-08-04 (F1's first execution fail-closed): the blend
+    loader's component `kind` vocabulary is {absent → 'panel', 'panel',
+    'momentum_residual'}. The SHADOW-MODEL vocabulary ('xgb', 'hf_patchtst', …)
+    is a DIFFERENT namespace, and copying a shadow_models entry verbatim into
+    components[] carried kind='xgb' → `declares unknown kind 'xgb'`, 83
+    candidates cleared. Guard EVERY blend profile so the two vocabularies can
+    never be conflated again."""
+    SUPPORTED = {"panel", "momentum_residual"}
+    profiles = [
+        "strategy_config.json",                          # prod IS a blend now
+        "strategy_config.shadow_blend.json",
+        "strategy_config.shadow_blend_momentum.json",
+        "strategy_config.shadow_blend_momentum_fast.json",
+        "strategy_config.shadow_blend_rb_mom.json",
+        "strategy_config.shadow_blend_rb_fast.json",
+    ]
+    checked = 0
+    for name in profiles:
+        cfg = _load(name)
+        panel = cfg["ranking"]["panel_scoring"]
+        if panel.get("kind") != "blend":
+            continue
+        comps = panel.get("components") or []
+        assert len(comps) >= 2, f"{name}: a blend needs >= 2 components"
+        for i, comp in enumerate(comps):
+            kind = comp.get("kind")
+            assert kind is None or kind in SUPPORTED, (
+                f"{name} components[{i}] declares kind={kind!r}; the blend "
+                f"loader supports {sorted(SUPPORTED)} (absent = 'panel'). "
+                "Shadow-model kinds ('xgb', 'hf_patchtst', …) are a different "
+                "namespace and fail-close the lane."
+            )
+            checked += 1
+    assert checked >= 10, f"anti-vacuity: only {checked} components checked"

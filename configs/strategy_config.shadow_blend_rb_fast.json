@@ -927,11 +927,10 @@
           "_role": "component 0 = PRODUCTION panel scorer (rank:pairwise xgb); pins copied from the live artifact 2026-07-27 (content abbrev-16 per the shadow_models convention, fp verbatim)"
         },
         {
-          "kind": "xgb",
           "artifact_path": "artifacts/shadow/panel-clf.top-decile.fwd60.json",
           "expected_content_sha256": "sha256:1e644354e0981f47",
           "expected_config_fingerprint": "sha256:1d8f167fed18cd8cb1e0760251fdd5398724e630462d92b41561d2e19973e41b",
-          "_role": "component 1 = top-decile CLASSIFIER leg (fwd_60d_excess membership probability head; pins copied verbatim from the prod config's shadow_models[0] entry)"
+          "_role": "component 1 = top-decile CLASSIFIER leg (fwd_60d_excess membership probability head). kind OMITTED deliberately = the blend loader's DEFAULT 'panel' (direct artifact) component. MEASURED 2026-08-04 (F1's first execution): copying the prod config's shadow_models[0] entry verbatim carried kind='xgb', which is the SHADOW-MODEL vocabulary, not the BLEND-COMPONENT vocabulary ('panel' | 'momentum_residual') — the loader fail-closed with \"declares unknown kind 'xgb'\" and cleared 83 candidates. Pins are still the prod entry's, verbatim."
         },
         {
           "kind": "momentum_residual",
