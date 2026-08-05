@@ -1338,3 +1338,50 @@ def test_shadow_blend_momentum_profile_semantic_pins() -> None:
             cfg["ranking"]["panel_scoring"]["components"][:1]
         )
     assert mom_norm == blend_norm
+
+
+def test_f2_fast_blend_profile_semantic_pins() -> None:
+    """GOAL-9 F2 lane (orch#794 AC2, s104#89 review): the fast-blend profile's
+    'exactly two leaf diffs vs the slow profile' claim is MECHANICAL, not
+    prose. Loads both profiles, pins the F2 component/pending contract, then
+    asserts leaf-for-leaf equality after excluding ONLY the two declared
+    deltas (components + the lane note)."""
+    fast = _load("strategy_config.shadow_blend_momentum_fast.json")
+    slow = _load("strategy_config.shadow_blend_momentum.json")
+
+    fps = fast["ranking"]["panel_scoring"]
+    assert fps["kind"] == "blend"
+    comps = fps["components"]
+    assert len(comps) == 2
+    assert comps[0]["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
+    c1 = comps[1]
+    assert c1["kind"] == "momentum_residual"
+    assert c1["artifact_path"] == "artifacts/momentum_fast/momentum_artifact_ledger.jsonl"
+    # the exact pending-first-artifact contract: marker present, fp pin ABSENT
+    # (added at genesis in the SAME change that deletes the marker — #793).
+    pending_keys = [k for k in c1 if k.endswith("_pending_first_artifact")]
+    assert len(pending_keys) == 1, c1.keys()
+    assert "expected_config_fingerprint" not in c1
+    assert "expected_content_sha256" not in c1
+
+    def leaves(d, prefix=""):
+        out = {}
+        for k, v in d.items():
+            p = f"{prefix}/{k}"
+            if isinstance(v, dict):
+                out.update(leaves(v, p))
+            else:
+                out[p] = v
+        return out
+
+    DECLARED = ("/ranking/panel_scoring/components",
+                "/ranking/panel_scoring/_shadow_blend_momentum_profile")
+    lf, ls = leaves(fast), leaves(slow)
+    diffs = sorted(
+        k for k in set(lf) | set(ls)
+        if lf.get(k, "<ABSENT>") != ls.get(k, "<ABSENT>")
+        and not any(k == d or k.startswith(d + "/") for d in DECLARED)
+    )
+    assert diffs == [], (
+        f"undeclared drift between fast and slow blend profiles: {diffs}"
+    )
