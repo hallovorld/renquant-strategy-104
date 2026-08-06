@@ -105,14 +105,31 @@ leaves the new per-name cap reachable, so no sector relaxation is
 required. Only BULL_CALM is raised; BULL_VOLATILE (0.20), CHOPPY (0.15,
 4 slots) and BEAR (0) keep their de-risking caps."
 
-          Tests on this head (`21acaadf`): `pytest -q` -> `102 passed, 1 skipped
-          in 1.19s` (the skip is `test_strategy_map_pointers.py`'s
-          `RENQUANT_POINTER_INTEGRATION != 1` gate, not a failure). Focused:
-          `pytest -q tests/test_strategy_configs.py` -> `43 passed in 0.62s`.
-          A prior revision of this doc reported a stale `101 passed, 1 failed
-          (test_config_drift_cli_exposes_repo_root)` from an earlier head; that
-          failure does not reproduce on the current head and is corrected here
-          per Codex's 2026-08-06T22:16:52Z review.
+          Tests on the current head (`de1b16d`), environment-scoped per
+          Codex's 2026-08-06T22:28:01Z review: `.venv/bin/python -m pytest -q`
+          in this repo's own local `.venv` (has `renquant-strategy-104` and
+          `renquant-common` installed **editable**, `.pth` files pointing at
+          both repos' `src/`) -> `102 passed, 1 skipped in 1.14s` (the skip is
+          `test_strategy_map_pointers.py`'s `RENQUANT_POINTER_INTEGRATION != 1`
+          gate, not a failure). Focused:
+          `pytest -q tests/test_strategy_configs.py` -> `43 passed in 0.62s`,
+          reproduced clean in that same venv.
+          In a bare/ephemeral review environment without those editable
+          installs, `pytest -q` instead returns `101 passed, 1 failed, 1
+          skipped`: `tests/test_config_drift.py::test_config_drift_cli_exposes_repo_root`
+          fails with `ModuleNotFoundError: No module named renquant_strategy_104`,
+          because that test spawns `sys.executable -m
+          renquant_strategy_104.config_drift --help` as a **subprocess**, and
+          pytest's `pythonpath = ["src", "../renquant-common/src"]` ini option
+          only patches `sys.path` for the pytest process itself, not for
+          subprocesses it launches — so the subprocess needs the package
+          actually installed (editable or otherwise), not just on pytest's
+          path. [VERIFIED — this session, both venv and bare-`python3`
+          reproductions above]. Codex independently reproduced the identical
+          failure on `origin/main`, so this is a pre-existing
+          environment-provisioning gap unrelated to this branch's diff, not a
+          regression introduced here — and out of this PR's scope to fix (the
+          diff is config-values-only per row 2a).
 
 NEXT:     renquant-orchestrator#883 is MERGED (2026-08-06T19:27:27Z, commit
           `0623f991`); LONG row 2a is live on orchestrator `main`. This PR's
