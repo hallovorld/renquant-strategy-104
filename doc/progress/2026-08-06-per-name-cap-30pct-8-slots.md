@@ -105,8 +105,15 @@ leaves the new per-name cap reachable, so no sector relaxation is
 required. Only BULL_CALM is raised; BULL_VOLATILE (0.20), CHOPPY (0.15,
 4 slots) and BEAR (0) keep their de-risking caps."
 
-          Tests on the current head (`de1b16d`), environment-scoped per
-          Codex's 2026-08-06T22:28:01Z review: `.venv/bin/python -m pytest -q`
+          Tests as of commit `de1b16d` — the last commit to touch code,
+          config, or tests on this branch. Every commit after `de1b16d`
+          (including this one) is a progress-doc wording fix only, so this
+          evidence remains current until the next code/config/test-touching
+          commit; this section intentionally does not name "the current
+          head" by SHA, since that SHA changes the instant a doc-wording
+          fix commits, which is what produced the preceding four
+          CHANGES_REQUESTED / fix cycles on this exact line. Environment-scoped
+          per Codex's 2026-08-06T22:28:01Z review: `.venv/bin/python -m pytest -q`
           in this repo's own local `.venv` (has `renquant-strategy-104` and
           `renquant-common` installed **editable**, `.pth` files pointing at
           both repos' `src/`) -> `102 passed, 1 skipped in 1.14s` (the skip is
