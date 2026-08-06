@@ -234,7 +234,6 @@
   "regime_params": {
     "BULL_CALM": {
       "max_position_pct": 0.3,
-      "_max_position_pct_reason": "2026-08-06 operator directive (verbatim: 'single-name cap may be 30%, keep at most 8 names'). Raised 0.12 -> 0.30. The REALISED size is not 30%: sizing multiplies this cap by confidence_to_size_multiplier (kernel/regime.py — floors at 0.50 below confidence 0.5, identity above), so the reachable band is 15.0% (conf<=0.5) to 30.0% (conf=1.0); at the live 2026-08-06 confidence 0.57 the cap yields 17.1%. Measured against a live median position of 3.1% of equity this is a deliberate ~5.5x concentration increase. max_concurrent_positions stays 8 per the same directive, and max_sector_weight_pct stays 0.35 — unchanged because 0.35 > 0.30 already leaves the new per-name cap reachable, so no sector relaxation is required. Only BULL_CALM is raised; BULL_VOLATILE (0.20), CHOPPY (0.15, 4 slots) and BEAR (0) keep their de-risking caps.",
       "qp_turnover_max": 0.15,
       "_qp_turnover_max_reason": "2026-05-23 Codex churn fix: BULL_CALM is the accumulation regime, so buys remain enabled, but daily QP L1 turnover is capped at 15% NAV to avoid small-edge churn after hidden tax gates were removed. This follows no-trade-region logic for proportional costs (Garleanu-Pedersen 2013 / cvxportfolio).",
       "max_sector_weight_pct": 0.35,

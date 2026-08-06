@@ -16,14 +16,23 @@ STATUS:   in-progress — config change authored and test-covered; deployment
           turnover, cash, and exit controls unchanged — matching this diff exactly.
           The durable audit record the control contract requires (SOP-L: operator
           decision cited, landed on the binding ledger's default branch) now
-          exists. Codex re-reviewed this exact head (`7c541b5`) and returned
-          `APPROVED` at 2026-08-06T19:42:19Z: "No blocking findings on the current
-          head... the config write is limited to `regime_params.BULL_CALM.max_position_pct`
+          exists. Codex reviewed head `7c541b5` and returned `APPROVED` at
+          2026-08-06T19:42:19Z: "No blocking findings on the current head... the
+          config write is limited to `regime_params.BULL_CALM.max_position_pct`
           and inert `ranking.kelly_sizing.max_concentration` moving `0.12 -> 0.30`
           ... no other regime caps, sector caps, slot counts, or unrelated
-          production surfaces moved." Per `long-term-agreements.md` item 7, merge
-          still requires an operator decision — self-merge is never authorized
-          regardless of row 2a or the approval.
+          production surfaces moved." That approval was superseded at
+          2026-08-06T19:54:39Z / 19:46:25Z: Codex caught a third key,
+          `_max_position_pct_reason`, present in `configs/strategy_config.json`
+          since the PR's first commit (`e7b43be`) — outside row 2a's exhaustive
+          two-key/eight-file grant ("no other key"). That key is removed on this
+          head; the diff now touches only the two authorized keys
+          (`max_position_pct`, `ranking.kelly_sizing.max_concentration`) across
+          the eight named files, and its rationale text is preserved verbatim in
+          EVIDENCE below rather than living in the live config. Per
+          `long-term-agreements.md` item 7, merge still requires an operator
+          decision — self-merge is never authorized regardless of row 2a or any
+          approval.
 
 WHAT:     Operator directive 2026-08-06, verbatim: **"单股上限可以是30%，最多保留8支股票"**
           (single-name cap may be 30%, keep at most 8 names). Raises
@@ -81,6 +90,20 @@ scope:         BULL_CALM only; this is a prod config diff, now covered by the
                operator-authorized LONG row 2a exception (renquant-orchestrator#883,
                merged) — see STATUS. Still requires Codex approval per item 7
                before any merge.
+rationale kept out of the live config (moved here from the removed
+`_max_position_pct_reason` key, verbatim): "2026-08-06 operator directive
+(verbatim: 'single-name cap may be 30%, keep at most 8 names'). Raised
+0.12 -> 0.30. The REALISED size is not 30%: sizing multiplies this cap by
+confidence_to_size_multiplier (kernel/regime.py — floors at 0.50 below
+confidence 0.5, identity above), so the reachable band is 15.0%
+(conf<=0.5) to 30.0% (conf=1.0); at the live 2026-08-06 confidence 0.57
+the cap yields 17.1%. Measured against a live median position of 3.1% of
+equity this is a deliberate ~5.5x concentration increase.
+max_concurrent_positions stays 8 per the same directive, and
+max_sector_weight_pct stays 0.35 — unchanged because 0.35 > 0.30 already
+leaves the new per-name cap reachable, so no sector relaxation is
+required. Only BULL_CALM is raised; BULL_VOLATILE (0.20), CHOPPY (0.15,
+4 slots) and BEAR (0) keep their de-risking caps."
 
           Tests: 101 passed, 1 failed (`test_config_drift_cli_exposes_repo_root`),
           confirmed identical on `origin/main` in a clean worktree — pre-existing,
@@ -89,12 +112,13 @@ scope:         BULL_CALM only; this is a prod config diff, now covered by the
 NEXT:     renquant-orchestrator#883 is MERGED (2026-08-06T19:27:27Z, commit
           `0623f991`); LONG row 2a is live on orchestrator `main`. This PR's
           config write is now compliant with the control contract by its own
-          escape hatch (SOP-L) rather than in spite of it. Codex has since
-          re-reviewed and APPROVED this exact head (`7c541b5`, 19:42:19Z) with no
-          blocking findings. Remaining step: an operator merge decision only —
-          this fix pass does not merge (item 7, never self-merge). `mergeStateStatus`
-          reads `BLOCKED` as of this check (external — likely the required-checks
-          gap noted in the GitHub Actions outage comment above, not a code issue).
+          escape hatch (SOP-L) rather than in spite of it. Codex APPROVED head
+          `7c541b5` (19:42:19Z), then CHANGES_REQUESTED the same head and its
+          successor `4365433` (19:46:25Z / 19:54:39Z) for the unauthorized
+          `_max_position_pct_reason` key. That key is removed on the current
+          head; the diff is back to exactly the two row-2a-authorized keys.
+          Remaining step: Codex re-review of this head, then an operator merge
+          decision — this fix pass does not merge (item 7, never self-merge).
           Independently: `open_slots` counts filled
           positions only and is blind to in-flight accepted-unfilled buys
           (renquant-pipeline#269) — that is what let the book reach 10 against a cap
@@ -118,8 +142,8 @@ NEXT:     renquant-orchestrator#883 is MERGED (2026-08-06T19:27:27Z, commit
 
 Set `regime_params.BULL_CALM.max_position_pct` back to `0.12` and
 `ranking.kelly_sizing.max_concentration` back to `0.12` in all eight configs
-(production, golden, and the six shadow lanes listed above), restore the four
-`0.12` assertions in `tests/test_strategy_configs.py`
+(production, golden, and the six shadow lanes listed above), and restore the
+four `0.12` assertions in `tests/test_strategy_configs.py`
 (`test_cash_drag_slot_counts_stay_at_production_8_3`,
-`test_shadow_ab_leaves_prod_and_golden_at_production_baseline`), and delete
-`_max_position_pct_reason`. No other file changes.
+`test_shadow_ab_leaves_prod_and_golden_at_production_baseline`). No other
+file changes.
