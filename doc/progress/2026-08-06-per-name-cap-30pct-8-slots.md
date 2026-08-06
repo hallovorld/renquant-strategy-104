@@ -105,9 +105,14 @@ leaves the new per-name cap reachable, so no sector relaxation is
 required. Only BULL_CALM is raised; BULL_VOLATILE (0.20), CHOPPY (0.15,
 4 slots) and BEAR (0) keep their de-risking caps."
 
-          Tests: 101 passed, 1 failed (`test_config_drift_cli_exposes_repo_root`),
-          confirmed identical on `origin/main` in a clean worktree — pre-existing,
-          not introduced here.
+          Tests on this head (`21acaadf`): `pytest -q` -> `102 passed, 1 skipped
+          in 1.19s` (the skip is `test_strategy_map_pointers.py`'s
+          `RENQUANT_POINTER_INTEGRATION != 1` gate, not a failure). Focused:
+          `pytest -q tests/test_strategy_configs.py` -> `43 passed in 0.62s`.
+          A prior revision of this doc reported a stale `101 passed, 1 failed
+          (test_config_drift_cli_exposes_repo_root)` from an earlier head; that
+          failure does not reproduce on the current head and is corrected here
+          per Codex's 2026-08-06T22:16:52Z review.
 
 NEXT:     renquant-orchestrator#883 is MERGED (2026-08-06T19:27:27Z, commit
           `0623f991`); LONG row 2a is live on orchestrator `main`. This PR's
