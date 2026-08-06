@@ -1,77 +1,86 @@
-# 2026-08-06 — Per-name concentration cap 12% → 30%, slots stay 8
+# Per-name concentration cap 12% -> 30%, slots stay 8 — operator directive, deployment blocked   (PR #94)
 
-## STATUS
+STATUS:   in-progress — config change authored and test-covered, but deployment is
+          BLOCKED. This PR writes `configs/strategy_config.json` directly (plus the
+          golden config and six live shadow lanes), which
+          `doc/memory/long-term-agreements.md` item 2 marks read-only in normal PR
+          flow. Codex's 2026-08-06 review on commit `e7b43be7` withheld approval on
+          exactly this ground and asked for either an isolated experiment/replay
+          surface or another operator-approved deployment mechanism. That decision
+          is not this fix pass's to make — see NEXT. This revision fixes the C5
+          field-format violation and the evidence-block inaccuracy Codex also
+          flagged; it does not touch the production-path files.
 
-Config-only change, PROPOSED. Not live until merged **and** the orchestrator pin
-advances (`doc/memory/` — "merged is not deployed": the daily run reads
-`strategy_config.json` from the PINNED subrepo, not from this branch).
+WHAT:     Operator directive 2026-08-06, verbatim: **"单股上限可以是30%，最多保留8支股票"**
+          (single-name cap may be 30%, keep at most 8 names). Raises
+          `regime_params.BULL_CALM.max_position_pct` 0.12 -> 0.30 and the currently
+          inert (`kelly_sizing.enabled=false`) `ranking.kelly_sizing.max_concentration`
+          0.12 -> 0.30, in `configs/strategy_config.json`,
+          `strategy_config.golden.json`, and the six live shadow lanes
+          (`shadow_blend`, `shadow_blend_momentum`, `shadow_blend_momentum_fast`,
+          `shadow_blend_rb_fast`, `shadow_blend_rb_mom`, `shadow_momentum`) so the
+          shadow A/B stays a model comparison rather than being confounded by a
+          sizing difference. `max_concurrent_positions` stays 8 in every regime;
+          `max_sector_weight_pct` stays 0.35 (already > 0.30, so the new cap is
+          reachable without a sector relaxation). `shadow.json` / `shadow_a.json` /
+          `shadow_b.json` are deliberately untouched — retired arms, already
+          off-baseline, no run DB.
 
-## WHAT
+WHY/DIR:  The per-name cap and the sizing chain were never reconciled:
+          `max_concurrent_positions=8` assumed 12% positions (8x12%=96% deployed),
+          but the sizing chain multiplies the regime cap by
+          `confidence_to_size_multiplier`, so 8 slots could only ever reach
+          8x6.84%=55%. That single unreconciled pair produced both observed
+          symptoms at once — a book simultaneously "over its position cap" and
+          "80% idle".
 
-Operator directive 2026-08-06, verbatim: **"单股上限可以是30%，最多保留8支股票"**
-(single-name cap may be 30%, keep at most 8 names).
+EVIDENCE:
+artifact:      `configs/strategy_config.json` + golden + 6 shadow configs;
+               `tests/test_strategy_configs.py`
+prod or exp:   **prod config, and this PR's diff is a live write to it right now** —
+               `configs/strategy_config.json:236-237` is modified on this branch.
+               A prior revision of this doc said "nothing written to a live path";
+               that was wrong and is corrected here per Codex's review. The
+               nuance that remains true: the change is not yet SERVED — "merged is
+               not deployed", the daily run reads `strategy_config.json` from the
+               orchestrator's PINNED subrepo commit, not this branch — but the file
+               write itself is the exact class of change
+               `long-term-agreements.md` item 2 forbids in normal PR flow, which is
+               why Codex blocked it regardless of the pin-advance gap.
+existing data: live account 2026-08-06, daily-full log
+               `logs/daily_104/2026-08-06.log`. `confidence_to_size_multiplier`
+               measured directly against `kernel/regime.py`
+               [VERIFIED — this session]: conf<=0.50 -> 0.50 floor (cap 0.30 ->
+               15.0%), conf=0.57 -> 0.57 (cap 0.30 -> 17.1%, live today), conf=1.00
+               -> 1.00 (cap 0.30 -> 30.0%); live median position 3.1% of equity
+               [VERIFIED — Alpaca positions API]. Knob precedence re-derived
+               [VERIFIED — `kernel/regime_resolver.py:50-57`]: the regime overlay
+               overrides the global `position_sizing.max_position_pct` in all four
+               regimes, so editing only the global would have been a silent no-op.
+               No upper-bound validator exists on `max_position_pct`
+               [VERIFIED — grep over `renquant-pipeline/src`]: `kernel/sizing.py:391`
+               checks only `math.isfinite`, so 0.30 cannot fail-close.
+best-known?:   yes for the mechanism (cap precedence, sizing-chain math); no for
+               "30% is optimal" — an operator risk decision implemented as given,
+               with no sweep or backtest behind the specific number.
+scope:         BULL_CALM only; this is a prod config diff sitting in an agent PR,
+               not yet an approved deployment — see STATUS.
 
-| knob | before | after | note |
-|---|---:|---:|---|
-| `regime_params.BULL_CALM.max_position_pct` | 0.12 | **0.30** | the operative per-name cap |
-| `ranking.kelly_sizing.max_concentration` | 0.12 | **0.30** | INERT (`kelly_sizing.enabled=false`); moved in step so re-enabling Kelly cannot silently revert the directive |
-| `max_concurrent_positions` | 8 | **8** | unchanged — already the directive's number |
-| `regime_params.BULL_CALM.max_sector_weight_pct` | 0.35 | **0.35** | unchanged; 0.35 > 0.30 already leaves the new cap reachable |
-| `max_positions_per_sector` | 6 | **6** | unchanged |
-| `BULL_VOLATILE` / `CHOPPY` / `BEAR` | — | — | unchanged; de-risking regimes keep 0.20 / 0.15 (4 slots) / 0 |
+          Tests: 101 passed, 1 failed (`test_config_drift_cli_exposes_repo_root`),
+          confirmed identical on `origin/main` in a clean worktree — pre-existing,
+          not introduced here.
 
-Applied to production + golden + the six live shadow lanes
-(`shadow_blend`, `shadow_blend_momentum`, `shadow_blend_momentum_fast`,
-`shadow_blend_rb_fast`, `shadow_blend_rb_mom`, `shadow_momentum`) so the shadow
-A/B stays a MODEL comparison. Had prod moved alone, every shadow-vs-prod delta
-would have been confounded by a sizing difference.
-
-`shadow.json` / `shadow_a.json` / `shadow_b.json` are deliberately NOT touched:
-they already sit off-baseline at 0.15/0.35 and have no run DB under
-`data/runs.alpaca_shadow_*` — the retired §2a arms.
-
-## WHY-DIR
-
-The cap and the sizing chain were never reconciled. `max_concurrent_positions=8`
-was chosen assuming 12% positions (8 × 12% = 96% deployed), but the sizing chain
-multiplies the regime cap by `confidence_to_size_multiplier`, so 8 slots could
-only ever reach 8 × 6.84% = 55%. That single unreconciled pair produced BOTH
-observed symptoms at once — a book that is simultaneously "over its position cap"
-and "80% idle".
-
-## EVIDENCE
-
-- artifact: `configs/strategy_config.json` + 7 mirrored configs; `tests/test_strategy_configs.py`
-- prod or exp: **prod config**, gated behind PR + pin advance; nothing written to a live path
-- existing data: live account 2026-08-06, daily-full log `logs/daily_104/2026-08-06.log`
-- best-known?: yes for the mechanism; **no** for the claim that 30% is optimal — see NOT ESTABLISHED
-- scope: BULL_CALM only
-
-Measured this session:
-
-```
-confidence_to_size_multiplier  [VERIFIED — kernel/regime.py, called directly]
-  conf<=0.50 -> 0.50 (floor)        cap 0.30 -> 15.0%
-  conf =0.57 -> 0.57               cap 0.30 -> 17.1%   <- live today
-  conf =1.00 -> 1.00               cap 0.30 -> 30.0%
-live median position                3.1% of equity     [VERIFIED — Alpaca positions API]
-=> deliberate ~5.5x concentration increase at today's confidence
-```
-
-Knob precedence re-derived rather than assumed
-[VERIFIED — `kernel/regime_resolver.py:50-57`]:
-`regime_params.<regime>.max_position_pct` **overrides**
-`position_sizing.max_position_pct`. The global 0.15 is dead under every regime
-that carries an overlay, which is all four. Changing only the global would have
-been a no-op.
-
-No upper-bound validator exists on `max_position_pct`
-[VERIFIED — grep over `renquant-pipeline/src`]; `kernel/sizing.py:391` checks
-only `math.isfinite`. So 0.30 cannot fail-close.
-
-Tests: **101 passed, 1 failed** — the one failure
-(`test_config_drift_cli_exposes_repo_root`) is **identical on `origin/main`**
-measured in a clean worktree, i.e. pre-existing and not introduced here.
+NEXT:     BLOCKED on a decision this fix pass cannot make: either (a) move the
+          config deployment to an isolated experiment/replay surface or another
+          operator-approved deployment mechanism per Codex's request, or (b) the
+          operator explicitly authorizes this specific PR as an exception to
+          `long-term-agreements.md` item 2 (a new LONG-ledger row via SOP-L). Until
+          one of those lands this PR should not merge as-is. Independently:
+          `open_slots` counts filled positions only and is blind to in-flight
+          accepted-unfilled buys (renquant-pipeline#269) — that is what let the
+          book reach 10 against a cap of 8. `portfolio_qp/wf_replay_loader.py:87-90`
+          hardcodes `_MAX_POSITION_PCT_BY_REGIME = {"BULL_CALM": 0.15}`, so no
+          WF/QP replay can validate this change as written (filed separately).
 
 ## NOT ESTABLISHED
 
@@ -84,18 +93,6 @@ measured in a clean worktree, i.e. pre-existing and not introduced here.
 3. **That deploying the idle capital is profitable.** Untested.
 4. **Downside.** A name at the realised 17.1% losing 30% costs the book 5.1%.
    That is the risk the operator has accepted, stated so it is legible.
-
-## NEXT
-
-- Codex review → merge → orchestrator pin advance (orch#808) → re-run daily full.
-- **Blocking the buy path independently of this PR:** `open_slots` counts filled
-  positions only and is blind to in-flight accepted-unfilled buys
-  (renquant-pipeline#269). That is what let the book reach 10 against a cap of 8.
-- **Backtest cannot validate this change as written:**
-  `portfolio_qp/wf_replay_loader.py:87-90` hardcodes
-  `_MAX_POSITION_PCT_BY_REGIME = {"BULL_CALM": 0.15}`, which never matched the
-  production 0.12 either. Any WF/QP replay silently sizes at 0.15. Filed
-  separately.
 
 ## REVERT
 
