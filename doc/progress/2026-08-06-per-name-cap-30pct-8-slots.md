@@ -1,27 +1,24 @@
-# Per-name concentration cap 12% -> 30%, slots stay 8 — operator directive, deployment blocked   (PR #94)
+# Per-name concentration cap 12% -> 30%, slots stay 8 — operator directive, deployment authority resolved   (PR #94)
 
 STATUS:   in-progress — config change authored and test-covered; deployment
-          authority is PARTIALLY resolved, not merge-ready. This PR writes
+          authority is now FULLY resolved. This PR writes
           `configs/strategy_config.json` directly (plus the golden config and six
           live shadow lanes), which `doc/memory/long-term-agreements.md` item 2
-          marks read-only in normal PR flow. Codex's 2026-08-06 16:08 review treats
-          the operator's verbatim directive quoted in this PR's description
-          ("单股上限可以是30%，最多保留8支股票") as resolving the deployment-authority
-          blocker on this thread, scoped narrowly: BULL_CALM per-name cap 0.30;
-          `max_concurrent_positions` stays 8; BULL_VOLATILE/CHOPPY/BEAR caps, sector
-          caps, max positions per sector, turnover, cash, and exit controls
-          unchanged. That is not yet the durable audit record the control contract
-          requires: the companion LONG-memory row
-          (`long-term-agreements.md` item 2a, renquant-orchestrator#883) text has
-          been reconciled to record Codex's audit-record comment
-          (2026-08-06T16:42:19Z, distinct login `haorensjtu-dev`) attesting to a
-          direct operator instruction, corroborated by Codex's APPROVED review
-          (16:43:59Z) — not a literal `@renhao`-authored PR-thread comment, since
-          Claude shares the `hallovorld` login with the operator and cannot post
-          an independent countersignature. #883 itself is still OPEN, not merged
-          to orchestrator `main` (re-verified 2026-08-06T16:46Z), so the row is not
-          yet live. This PR should not merge until #883 merges — see NEXT. This
-          revision does not touch any of the eight production-path config files.
+          marks read-only in normal PR flow. That write is now covered by the
+          item-2a exception: renquant-orchestrator#883 (LONG ledger row 2a, "one-time
+          exception for the concentration raise") MERGED to orchestrator `main` at
+          2026-08-06T19:27:27Z, commit `0623f991` [VERIFIED —
+          `gh pr view 883 --repo hallovorld/renquant-orchestrator --json state,mergedAt,mergeCommit`
+          state=MERGED]. Row 2a names this exact PR ("Authorises exactly one agent
+          PR — renquant-strategy-104#94") and scopes it narrowly: BULL_CALM
+          per-name cap 0.30; `max_concurrent_positions` stays 8;
+          BULL_VOLATILE/CHOPPY/BEAR caps, sector caps, max positions per sector,
+          turnover, cash, and exit controls unchanged — matching this diff exactly.
+          The durable audit record the control contract requires (SOP-L: operator
+          decision cited, landed on the binding ledger's default branch) now
+          exists. Per `long-term-agreements.md` item 7, this PR still requires the
+          other agent's (Codex) approval before merge — self-merge is never
+          authorized regardless of row 2a.
 
 WHAT:     Operator directive 2026-08-06, verbatim: **"单股上限可以是30%，最多保留8支股票"**
           (single-name cap may be 30%, keep at most 8 names). Raises
@@ -75,20 +72,21 @@ existing data: live account 2026-08-06, daily-full log
 best-known?:   yes for the mechanism (cap precedence, sizing-chain math); no for
                "30% is optimal" — an operator risk decision implemented as given,
                with no sweep or backtest behind the specific number.
-scope:         BULL_CALM only; this is a prod config diff sitting in an agent PR,
-               not yet an approved deployment — see STATUS.
+scope:         BULL_CALM only; this is a prod config diff, now covered by the
+               operator-authorized LONG row 2a exception (renquant-orchestrator#883,
+               merged) — see STATUS. Still requires Codex approval per item 7
+               before any merge.
 
           Tests: 101 passed, 1 failed (`test_config_drift_cli_exposes_repo_root`),
           confirmed identical on `origin/main` in a clean worktree — pre-existing,
           not introduced here.
 
-NEXT:     Merge renquant-orchestrator#883 — its row 2a wording is now reconciled
-          with the recorded Codex audit-record authorization, but the PR is still
-          open on orchestrator `main`. Once it merges, LONG row 2a is live and
-          gives this PR's config write a durable, auditable exception record under
-          `long-term-agreements.md` item 2, and this PR is compliant with the
-          control contract by its own escape hatch (SOP-L) rather than in spite of
-          it, and can go to an operator merge decision. Independently: `open_slots` counts filled
+NEXT:     renquant-orchestrator#883 is MERGED (2026-08-06T19:27:27Z, commit
+          `0623f991`); LONG row 2a is live on orchestrator `main`. This PR's
+          config write is now compliant with the control contract by its own
+          escape hatch (SOP-L) rather than in spite of it. Remaining step: Codex
+          re-review of the current head and an operator merge decision — this fix
+          pass does not merge (item 7, never self-merge). Independently: `open_slots` counts filled
           positions only and is blind to in-flight accepted-unfilled buys
           (renquant-pipeline#269) — that is what let the book reach 10 against a cap
           of 8. `portfolio_qp/wf_replay_loader.py:87-90` hardcodes
