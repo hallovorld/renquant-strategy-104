@@ -234,7 +234,7 @@
   },
   "regime_params": {
     "BULL_CALM": {
-      "max_position_pct": 0.12,
+      "max_position_pct": 0.3,
       "qp_turnover_max": 0.15,
       "_qp_turnover_max_reason": "2026-05-23 Codex churn fix: BULL_CALM is the accumulation regime, so buys remain enabled, but daily QP L1 turnover is capped at 15% NAV to avoid small-edge churn after hidden tax gates were removed. This follows no-trade-region logic for proportional costs (Garleanu-Pedersen 2013 / cvxportfolio).",
       "max_sector_weight_pct": 0.35,
@@ -1045,7 +1045,7 @@
     "kelly_sizing": {
       "enabled": false,
       "fractional": 0.3,
-      "max_concentration": 0.12,
+      "max_concentration": 0.3,
       "min_edge": 0,
       "top_up_threshold": 0.05,
       "topup_conviction_floor": 0.55,

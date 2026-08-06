@@ -94,11 +94,28 @@ def test_cash_drag_slot_counts_stay_at_production_8_3() -> None:
         == golden["rotation"]["panel_buy_top_n"]
     )
 
-    # Per-name and per-sector risk and Kelly aggression are deliberately NOT
-    # touched -- guard against an accidental risk relaxation.
+    # Per-name concentration WAS raised on 2026-08-06 by operator directive
+    # (verbatim: "单股上限可以是30%，最多保留8支股票" — single-name cap may be 30%,
+    # keep at most 8 names). The SLOT counts this test exists to protect are
+    # unchanged (8/3) and still asserted above; the per-name pins move to 0.30
+    # and keep guarding against any FURTHER drift.
+    #
+    # Realised size is NOT 30%: sizing multiplies the cap by
+    # confidence_to_size_multiplier (kernel/regime.py — floors at 0.50, identity
+    # above), so the band is 15.0% (conf<=0.5) to 30.0% (conf=1.0); the live
+    # 2026-08-06 confidence 0.57 yields 17.1%.
+    #
+    # max_sector_weight_pct is deliberately NOT raised: at 0.35 > 0.30 the new
+    # per-name cap is already reachable, so no sector relaxation is required.
+    # Kelly max_concentration tracks the regime cap by its own stated contract
+    # (_max_conc_note_20260609 "Aligns kelly cap with BULL_CALM
+    # max_position_pct"); it is INERT today (kelly_sizing.enabled=False) but is
+    # moved in step so that re-enabling Kelly cannot silently revert the
+    # directive back to 12%.
     assert active["ranking"]["kelly_sizing"]["fractional"] == 0.3
-    assert active["ranking"]["kelly_sizing"]["max_concentration"] == 0.12
-    assert active["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.12
+    assert active["ranking"]["kelly_sizing"]["max_concentration"] == 0.3
+    assert active["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.3
+    assert active["regime_params"]["BULL_CALM"]["max_sector_weight_pct"] == 0.35
     assert active["max_positions_per_sector"] == 6
 
 
@@ -784,7 +801,10 @@ def test_shadow_ab_leaves_prod_and_golden_at_production_baseline() -> None:
     'prod/golden untouched'. Pin the production baseline on every §2a-relevant
     key so the shadow A/B cannot leak into the live book: the production
     buy-floor stays adaptive_mean_std at 1.0σ (XGB primary), sizing stays at
-    the production Kelly 0.3/0.12, BULL_CALM 0.12, one-share floor OFF. Live
+    the production Kelly 0.3/0.30, BULL_CALM 0.30 (raised from 0.12 by the
+    2026-08-06 operator directive "单股上限可以是30%，最多保留8支股票" — this pin
+    tracks the production baseline, it does not authorise it), one-share floor
+    OFF. Live
     enablement of the 0.5σ treatment is a SEPARATE future PR carrying the §2a
     Tier-2 verdict memo + pre-registration gate + Codex review (§2a decision
     rule) — never this pin silently drifting."""
@@ -800,8 +820,8 @@ def test_shadow_ab_leaves_prod_and_golden_at_production_baseline() -> None:
         assert "OPERATOR OVERRIDE 2026-08-04" in panel["_buy_floor_reason"], name
         assert cfg["ranking"]["kelly_sizing"]["enabled"] is False, name
         assert cfg["ranking"]["kelly_sizing"]["fractional"] == 0.3, name
-        assert cfg["ranking"]["kelly_sizing"]["max_concentration"] == 0.12, name
-        assert cfg["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.12, name
+        assert cfg["ranking"]["kelly_sizing"]["max_concentration"] == 0.3, name
+        assert cfg["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.3, name
         assert cfg["sizing"]["one_share_floor_enabled"] is False, name
 
 
