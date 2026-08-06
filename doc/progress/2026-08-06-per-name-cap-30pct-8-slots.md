@@ -12,12 +12,16 @@ STATUS:   in-progress — config change authored and test-covered; deployment
           caps, max positions per sector, turnover, cash, and exit controls
           unchanged. That is not yet the durable audit record the control contract
           requires: the companion LONG-memory row
-          (`long-term-agreements.md` item 2a, renquant-orchestrator#883) that would
-          make this a documented exception per SOP-L is itself blocked pending a
-          direct @renhao countersignature comment on that PR thread — still absent
-          as of this revision. This PR should not merge until #883 lands with that
-          countersignature — see NEXT. This revision does not touch any of the
-          eight production-path config files.
+          (`long-term-agreements.md` item 2a, renquant-orchestrator#883) text has
+          been reconciled to record Codex's audit-record comment
+          (2026-08-06T16:42:19Z, distinct login `haorensjtu-dev`) attesting to a
+          direct operator instruction, corroborated by Codex's APPROVED review
+          (16:43:59Z) — not a literal `@renhao`-authored PR-thread comment, since
+          Claude shares the `hallovorld` login with the operator and cannot post
+          an independent countersignature. #883 itself is still OPEN, not merged
+          to orchestrator `main` (re-verified 2026-08-06T16:46Z), so the row is not
+          yet live. This PR should not merge until #883 merges — see NEXT. This
+          revision does not touch any of the eight production-path config files.
 
 WHAT:     Operator directive 2026-08-06, verbatim: **"单股上限可以是30%，最多保留8支股票"**
           (single-name cap may be 30%, keep at most 8 names). Raises
@@ -78,13 +82,13 @@ scope:         BULL_CALM only; this is a prod config diff sitting in an agent PR
           confirmed identical on `origin/main` in a clean worktree — pre-existing,
           not introduced here.
 
-NEXT:     Land the operator countersignature comment on
-          renquant-orchestrator#883 ("单股上限可以是30%，最多保留8支股票"), which un-voids
-          LONG row 2a and gives this PR's config write a durable, auditable
-          exception record under `long-term-agreements.md` item 2. Once #883 merges
-          with that row live, this PR is compliant with the control contract by its
-          own escape hatch (SOP-L) rather than in spite of it, and can go to an
-          operator merge decision. Independently: `open_slots` counts filled
+NEXT:     Merge renquant-orchestrator#883 — its row 2a wording is now reconciled
+          with the recorded Codex audit-record authorization, but the PR is still
+          open on orchestrator `main`. Once it merges, LONG row 2a is live and
+          gives this PR's config write a durable, auditable exception record under
+          `long-term-agreements.md` item 2, and this PR is compliant with the
+          control contract by its own escape hatch (SOP-L) rather than in spite of
+          it, and can go to an operator merge decision. Independently: `open_slots` counts filled
           positions only and is blind to in-flight accepted-unfilled buys
           (renquant-pipeline#269) — that is what let the book reach 10 against a cap
           of 8. `portfolio_qp/wf_replay_loader.py:87-90` hardcodes
