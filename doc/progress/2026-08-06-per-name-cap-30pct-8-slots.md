@@ -1,15 +1,23 @@
 # Per-name concentration cap 12% -> 30%, slots stay 8 — operator directive, deployment blocked   (PR #94)
 
-STATUS:   in-progress — config change authored and test-covered, but deployment is
-          BLOCKED. This PR writes `configs/strategy_config.json` directly (plus the
-          golden config and six live shadow lanes), which
-          `doc/memory/long-term-agreements.md` item 2 marks read-only in normal PR
-          flow. Codex's 2026-08-06 review on commit `e7b43be7` withheld approval on
-          exactly this ground and asked for either an isolated experiment/replay
-          surface or another operator-approved deployment mechanism. That decision
-          is not this fix pass's to make — see NEXT. This revision fixes the C5
-          field-format violation and the evidence-block inaccuracy Codex also
-          flagged; it does not touch the production-path files.
+STATUS:   in-progress — config change authored and test-covered; deployment
+          authority is PARTIALLY resolved, not merge-ready. This PR writes
+          `configs/strategy_config.json` directly (plus the golden config and six
+          live shadow lanes), which `doc/memory/long-term-agreements.md` item 2
+          marks read-only in normal PR flow. Codex's 2026-08-06 16:08 review treats
+          the operator's verbatim directive quoted in this PR's description
+          ("单股上限可以是30%，最多保留8支股票") as resolving the deployment-authority
+          blocker on this thread, scoped narrowly: BULL_CALM per-name cap 0.30;
+          `max_concurrent_positions` stays 8; BULL_VOLATILE/CHOPPY/BEAR caps, sector
+          caps, max positions per sector, turnover, cash, and exit controls
+          unchanged. That is not yet the durable audit record the control contract
+          requires: the companion LONG-memory row
+          (`long-term-agreements.md` item 2a, renquant-orchestrator#883) that would
+          make this a documented exception per SOP-L is itself blocked pending a
+          direct @renhao countersignature comment on that PR thread — still absent
+          as of this revision. This PR should not merge until #883 lands with that
+          countersignature — see NEXT. This revision does not touch any of the
+          eight production-path config files.
 
 WHAT:     Operator directive 2026-08-06, verbatim: **"单股上限可以是30%，最多保留8支股票"**
           (single-name cap may be 30%, keep at most 8 names). Raises
@@ -70,17 +78,18 @@ scope:         BULL_CALM only; this is a prod config diff sitting in an agent PR
           confirmed identical on `origin/main` in a clean worktree — pre-existing,
           not introduced here.
 
-NEXT:     BLOCKED on a decision this fix pass cannot make: either (a) move the
-          config deployment to an isolated experiment/replay surface or another
-          operator-approved deployment mechanism per Codex's request, or (b) the
-          operator explicitly authorizes this specific PR as an exception to
-          `long-term-agreements.md` item 2 (a new LONG-ledger row via SOP-L). Until
-          one of those lands this PR should not merge as-is. Independently:
-          `open_slots` counts filled positions only and is blind to in-flight
-          accepted-unfilled buys (renquant-pipeline#269) — that is what let the
-          book reach 10 against a cap of 8. `portfolio_qp/wf_replay_loader.py:87-90`
-          hardcodes `_MAX_POSITION_PCT_BY_REGIME = {"BULL_CALM": 0.15}`, so no
-          WF/QP replay can validate this change as written (filed separately).
+NEXT:     Land the operator countersignature comment on
+          renquant-orchestrator#883 ("单股上限可以是30%，最多保留8支股票"), which un-voids
+          LONG row 2a and gives this PR's config write a durable, auditable
+          exception record under `long-term-agreements.md` item 2. Once #883 merges
+          with that row live, this PR is compliant with the control contract by its
+          own escape hatch (SOP-L) rather than in spite of it, and can go to an
+          operator merge decision. Independently: `open_slots` counts filled
+          positions only and is blind to in-flight accepted-unfilled buys
+          (renquant-pipeline#269) — that is what let the book reach 10 against a cap
+          of 8. `portfolio_qp/wf_replay_loader.py:87-90` hardcodes
+          `_MAX_POSITION_PCT_BY_REGIME = {"BULL_CALM": 0.15}`, so no WF/QP replay can
+          validate this change as written (filed separately).
 
 ## NOT ESTABLISHED
 
