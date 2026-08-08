@@ -930,7 +930,8 @@
           "kind": "momentum_residual",
           "artifact_path": "artifacts/momentum_fast/momentum_artifact_ledger.jsonl",
           "_role": "component 1 = FAST momentum residual v1 (63/5, params frozen renquant-model#199 pre-run; own append-only digest-chained ledger). Ledger-pointer leg, serving contract identical to the v0 lane once published.",
-          "_2026_08_04_pending_first_artifact": "F2 lane (GOAL-9 orch#794): declared dormant, v0-precedent bounded pending state — the fast ledger publishes its genesis on the first Saturday fast-lane run (2026-08-08). Until then the blend loader fail-closes on the absent component (the DESIGNED daily record, non-fatal in the Step-5c wrapper). At genesis, the SAME change must: add expected_config_fingerprint (measured from the published artifact params, momentum-v1_fast-<sha16>) and delete this marker — the #793 consumer-checklist pattern applied at birth."
+          "expected_config_fingerprint": "momentum-v1_fast-2839b6c21db8ce13",
+          "_config_fingerprint_provenance": "GENESIS PIN 2026-08-08. Recomputed from the PUBLISHED artifact params via renquant_pipeline.momentum_identity.params_fingerprint (recipe momentum-<params_version>-<sha256(canonical params)[:16]>), never copied from a prior note. Ledger rows 0/1 (cutoffs 2026-08-06/07) both recompute to this value: the fingerprint is derived from params and is INVARIANT across appends, which is exactly why it — and NOT expected_content_sha256 — is the right pin for an append-only ledger. Pinning the content sha would fail-close on every weekly append. Genesis actually landed 2026-08-06, two days before the 08-08 date this marker predicted."
         }
       ],
       "nan_prone_cols": [],
