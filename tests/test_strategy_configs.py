@@ -1377,12 +1377,16 @@ def test_f2_fast_blend_profile_semantic_pins() -> None:
     c1 = comps[1]
     assert c1["kind"] == "momentum_residual"
     assert c1["artifact_path"] == "artifacts/momentum_fast/momentum_artifact_ledger.jsonl"
-    # the exact pending-first-artifact contract: marker present, fp pin ABSENT
-    # (added at genesis in the SAME change that deletes the marker — #793).
-    pending_keys = [k for k in c1 if k.endswith("_pending_first_artifact")]
-    assert len(pending_keys) == 1, c1.keys()
-    assert "expected_config_fingerprint" not in c1
+    # GENESIS LANDED (ledger row 0, cutoff 2026-08-06; s104#96): the pending
+    # marker is retired and the fingerprint pin is present, in the SAME change
+    # (#793 pattern). The fingerprint derives from params and is invariant
+    # across appends — which is why expected_content_sha256 stays ABSENT: the
+    # ledger is append-only and a byte pin would fail-close on every weekly
+    # append.
+    assert [k for k in c1 if k.endswith("_pending_first_artifact")] == [], c1.keys()
+    assert c1["expected_config_fingerprint"] == "momentum-v1_fast-2839b6c21db8ce13"
     assert "expected_content_sha256" not in c1
+    assert "_config_fingerprint_provenance" in c1
 
     def leaves(d, prefix=""):
         out = {}
@@ -1450,8 +1454,9 @@ def test_f1_rb_mom_profile_semantic_pins() -> None:
 
 
 def test_f3_rb_fast_profile_semantic_pins() -> None:
-    """GOAL-9 F3: z(prod)+z(clf)+z(FAST momentum); fast leg keeps the F2
-    pending contract (marker present, fp/byte pins absent until genesis)."""
+    """GOAL-9 F3: z(prod)+z(clf)+z(FAST momentum); fast leg carries the F2
+    post-genesis contract (marker retired, fingerprint pinned, byte pin
+    deliberately absent — append-only ledger)."""
     f3 = _load("strategy_config.shadow_blend_rb_fast.json")
     base = _load("strategy_config.shadow_blend_momentum_fast.json")
     comps = f3["ranking"]["panel_scoring"]["components"]
@@ -1459,9 +1464,10 @@ def test_f3_rb_fast_profile_semantic_pins() -> None:
     assert comps[1]["artifact_path"] == "artifacts/shadow/panel-clf.top-decile.fwd60.json"
     c2 = comps[2]
     assert c2["artifact_path"] == "artifacts/momentum_fast/momentum_artifact_ledger.jsonl"
-    assert len([k for k in c2 if k.endswith("_pending_first_artifact")]) == 1
-    assert "expected_config_fingerprint" not in c2
+    assert [k for k in c2 if k.endswith("_pending_first_artifact")] == [], c2.keys()
+    assert c2["expected_config_fingerprint"] == "momentum-v1_fast-2839b6c21db8ce13"
     assert "expected_content_sha256" not in c2
+    assert "_config_fingerprint_provenance" in c2
     _assert_only_declared_fleet_deltas(f3, base)
 
 
