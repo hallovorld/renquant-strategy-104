@@ -7,8 +7,14 @@ STATUS:    in-progress — config change through review. MERGE-GATED by
            row") requires an operator-authorized LONG-ledger row for
            THIS write, and none exists yet [VERIFIED — git show
            origin/main:doc/memory/long-term-agreements.md ends at row
-           10, checked 2026-08-10]. Deployment to the running machine
-           is a further SEPARATE, operator-granted pin-sync step.
+           10, checked 2026-08-10]. The gate is now FORMAL, not just
+           anticipated: the Codex code-owner review returned
+           CHANGES_REQUESTED (2026-08-10T07:24:46Z, on the head whose
+           config-touching commit is 231f1ac), accepting the progress
+           doc + evidence block on the merits and blocking merge
+           solely on the missing SOP-L row. Deployment to the running
+           machine is a further SEPARATE, operator-granted pin-sync
+           step.
 
 WHAT:      qp_min_invested_pct 0 -> 0.7 and qp_cash_drag_lambda
            0 -> 0.05 across all 11 strategy_config profiles (active,
@@ -53,7 +59,10 @@ TESTS:     make test (RenQuant venv): 102 passed, 1 skipped — includes
            the shadow semantic-pin tests that enforce profile
            consistency on exactly this section.
 
-NEXT:      (1) Codex code-owner review of this diff; (2) operator
+NEXT:      (1) DONE 2026-08-10 — Codex code-owner review submitted
+           (CHANGES_REQUESTED per STATUS above; the sole finding is
+           the missing operator authorization, not the diff's merits);
+           (2) operator
            decision transcribed as a LONG-ledger row (SOP-L; the
            strategy-104#94 -> orch#883 -> row-2a protocol) authorizing
            this two-knob write — the agent may not author that row on
