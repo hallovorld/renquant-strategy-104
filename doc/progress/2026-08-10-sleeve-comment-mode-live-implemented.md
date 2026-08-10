@@ -8,24 +8,38 @@ WHAT:      `configs/strategy_config.json` `sleeve._comment` said
            shadow with a warning)". That is FALSE against the current pinned
            code: `renquant-pipeline .../kernel/pipeline/task_parking_sleeve.py`
            implements `mode="live"` as the RS-1 §2/§4 SGOV-floor arm — it emits
-           REAL SGOV order intents and FAIL-CLOSES (no order) when SGOV is
-           unpriced (docstring :39-47 "Live = SGOV floor only … SPY arm stays
-           DARK … deliberately no config knob"; :783-784 sgov_only=True,
-           spy_qty=0; :858 sgov_price_missing_live_fail_closed). Corrected the
-           comment to state that mode=live is a LIVE-CAPITAL change (not a
-           shadow no-op), that the SPY arm is dark with no knob, and that SGOV
-           is currently unpriced so live fail-closes to $0 until a price feed is
-           wired.
+           REAL SGOV order intents (docstring :39-47 "Live = SGOV floor only …
+           SPY arm stays DARK … deliberately no config knob"; :783-784
+           sgov_only=True, spy_qty=0). Corrected the comment to state that
+           mode=live is a LIVE-CAPITAL change (not a shadow no-op) and that the
+           SPY arm is dark with no knob.
+
+           [codex P1] The first version of this correction then made its OWN
+           false claim: that an unpriced SGOV emits nothing at all. The
+           missing-price branch blocks BUYS only. Read back from the pinned
+           source (task_parking_sleeve.py:851-892):
+
+               if sgov_shares >= 1 and (funding_shortfall > 0.0 or rr >= 1.0):
+                   sig = ExitSignal(..., quantity=None)   # FULL exit — needs no price
+                   live_exits.append((sgov_symbol, sig))
+                   reason = "sgov_price_missing_fail_closed_full_exit"
+
+           So with a held SGOV position and a real cash need (reserve/pending
+           shortfall, or a regime demanding full cash), the unpriced branch
+           emits a full liquidation. A universal no-order claim would have been
+           a NEW safety-relevant falsehood in the place people read to decide
+           whether mode=live is safe — the exact failure this PR exists to
+           remove.
 
 WHY/DIR:   Safety-relevant staleness: an operator/agent reading the old comment
            would believe flipping `mode="live"` is an inert shadow-logging flip,
            when the code actually attempts live SGOV order emission. Surfaced by
            the 2026-08-10 cash-drag backtest (which established that mode=live is
-           NOT the SPY-deployment remedy — it is SGOV-only and today a
-           fail-closed no-op).
+           NOT the SPY-deployment remedy — it is SGOV-only, and while SGOV is
+           unpriced it emits no BUYS).
 
 EVIDENCE:  artifact:      configs/strategy_config.json (sleeve._comment) [VERIFIED
-                          — JSON re-parses; 1-line targeted replace, no value
+                          — JSON re-parses; comment-only replace, no value
                           change; mode stays "shadow"]
            prod or exp:   comment-only; behaviour-invariant; not a deploy
            existing data: renquant-pipeline task_parking_sleeve.py:39-47/783/858
