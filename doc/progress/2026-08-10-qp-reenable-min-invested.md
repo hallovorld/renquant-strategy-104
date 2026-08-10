@@ -1,7 +1,14 @@
 # qp deployment knobs re-enabled — the 2026-05-23 condition is met
 
-STATUS:    config change through review; deployment to the running
-           machine is a SEPARATE, operator-granted pin-sync step.
+STATUS:    in-progress — config change through review. MERGE-GATED by
+           LONG row 2 (agent writes to configs/strategy_config.json
+           are read-only-protected): row 2a's non-generalisation
+           clause ("any other production-config write needs its own
+           row") requires an operator-authorized LONG-ledger row for
+           THIS write, and none exists yet [VERIFIED — git show
+           origin/main:doc/memory/long-term-agreements.md ends at row
+           10, checked 2026-08-10]. Deployment to the running machine
+           is a further SEPARATE, operator-granted pin-sync step.
 
 WHAT:      qp_min_invested_pct 0 -> 0.7 and qp_cash_drag_lambda
            0 -> 0.05 across all 11 strategy_config profiles (active,
@@ -46,7 +53,17 @@ TESTS:     make test (RenQuant venv): 102 passed, 1 skipped — includes
            the shadow semantic-pin tests that enforce profile
            consistency on exactly this section.
 
-NEXT:      merge -> operator-granted pin sync on the running machine ->
-           first post-enable sessions watched via the L1 exposure
-           shadow + funnel receipts (the deployment pace is bounded by
-           the 0.15 turnover cap; expected staircase, not a jump).
+NEXT:      (1) Codex code-owner review of this diff; (2) operator
+           decision transcribed as a LONG-ledger row (SOP-L; the
+           strategy-104#94 -> orch#883 -> row-2a protocol) authorizing
+           this two-knob write — the agent may not author that row on
+           its own judgment, and the 2026-05-23 re-enable condition
+           was Codex-authored, so no operator decision is on record
+           yet; the basis offered for that row is the in-config
+           2026-05-23 recorded condition + prereg section 6 (orch#955:
+           the PASS deliverable is this PR "THROUGH REVIEW") + the
+           orch#957 official PASS; (3) merge; (4) operator-granted pin
+           sync on the running machine; (5) first post-enable sessions
+           watched via the L1 exposure shadow + funnel receipts (the
+           deployment pace is bounded by the 0.15 turnover cap;
+           expected staircase, not a jump).
