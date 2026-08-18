@@ -26,6 +26,7 @@ def test_required_policy_configs_exist_and_parse() -> None:
         "strategy_config.shadow_b.json",
         "strategy_config.shadow_blend.json",
         "strategy_config.shadow_blend_momentum.json",
+        "strategy_config.shadow_vol_window.json",
         "xgb_prod_artifact_manifest.json",
     ):
         data = _load(name)
@@ -33,6 +34,63 @@ def test_required_policy_configs_exist_and_parse() -> None:
         if name.startswith("strategy_config"):
             assert data.get("watchlist"), f"{name} missing watchlist"
             assert data.get("regime_params"), f"{name} missing regime_params"
+
+
+def test_shadow_vol_window_lane_contract() -> None:
+    """orch#1004 vol-window design, impl PR 1 — the shadow_vol_window lane pins.
+
+    The lane serves the CERTIFIED scorer (orch#1003 §8 pins: solo-xgb
+    panel-ltr.alpha158_fund.json — deliberately NOT today's prod z-blend,
+    because the certification's estimand is that artifact's top decile and
+    the activation evidence must count the certified thing), arms the
+    regime_admission refusal whose missing-bull slot the license substitutes
+    for, and enables vol_window_license with the FROZEN constants (orch#1001
+    prereg §2: vol20 > 0.135 STRICT, 20 trading days). Flipping any frozen
+    constant, disabling the admission slot, or re-pointing the scorer must
+    fail this suite until the change is deliberately reviewed alongside this
+    pin. Never-submit posture is the daily runner's (readonly broker + lane
+    tag — impl PR 2); nothing in this repo schedules the lane."""
+    lane = load_strategy_config(CONFIG_DIR / "strategy_config.shadow_vol_window.json")
+    prod = load_strategy_config(CONFIG_DIR / "strategy_config.json")
+    ps = lane["ranking"]["panel_scoring"]
+
+    # 1. the certified scorer, solo — not the prod blend
+    assert ps["kind"] == "xgb"
+    assert ps["artifact_path"] == "artifacts/prod/panel-ltr.alpha158_fund.json"
+    assert "components" not in ps
+    assert ps["global_calibration"]["enabled"] is True
+
+    # 2. the refusal slot the license substitutes for is ARMED
+    assert ps["regime_admission"]["enabled"] is True
+
+    # 3. frozen window constants + kill-switch documentation (design AC4)
+    vwl = ps["vol_window_license"]
+    assert vwl["enabled"] is True
+    assert vwl["threshold"] == 0.135
+    assert vwl["vol_window_days"] == 20
+    assert "RENQUANT_VOL_WINDOW_LICENSE_DISABLE" in vwl["_kill_switch"]
+    assert "orch#1004" in vwl["_comment"]
+    assert "#1004" in lane["_shadow_vol_window_profile"]
+
+    # 4. the model-relevant projection is IDENTICAL to prod, so the artifact
+    #    consistency check and the calibrator's strict_scorer_match hold with
+    #    no re-stamp (the certified fingerprint sha256:f8fb2259b2bf1537).
+    cc = pytest.importorskip("renquant_common.config_consistency")
+    assert cc.fingerprint_config(lane) == cc.fingerprint_config(prod)
+    assert cc.fingerprint_config(lane) == "sha256:f8fb2259b2bf1537"
+
+    # 5. lane hygiene: no duplicated shadow legs; e00d935 sizing directive
+    #    applied lane-wide so shadow-vs-prod deltas stay a model comparison;
+    #    the intraday shadow-only pin holds here like every lane.
+    assert "shadow_models" not in ps
+    assert lane["regime_params"]["BULL_CALM"]["max_position_pct"] == 0.3
+    assert lane["ranking"]["kelly_sizing"]["max_concentration"] == 0.3
+    assert lane["intraday_decisioning"]["mode"] == "shadow"
+
+    # 6. the expired diagnostic-only authorization is deliberately absent —
+    #    the license never substitutes for governance refusals.
+    assert "diagnostic_only_buy_admission" not in lane["wf_gate"]
+    assert lane["watchlist"] == prod["watchlist"]
 
 
 def test_active_and_golden_watchlist_match() -> None:
