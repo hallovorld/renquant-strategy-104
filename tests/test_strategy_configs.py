@@ -110,12 +110,15 @@ def test_active_and_golden_semantic_config_match() -> None:
     # production sync.
     active_wf = active_norm.pop("walkforward", None)
     golden_wf = golden_norm.pop("walkforward", None)
-    assert active_wf == {
-        "manifest_path": (
-            "/Users/renhao/git/github/RenQuant/backtesting/renquant_104/"
-            "artifacts/sim/walkforward_manifest_dropsenti_v3.json"
-        )
-    }
+    # strategy-104#101 (2026-08-24): the active config carried an absolute
+    # manifest_path to a file that no longer exists anywhere in the umbrella
+    # (dropsenti_v3), runtime-inert only because `enabled` defaults False in
+    # SimAdapter and the live RunnerAdapter never reads walkforward.*. The
+    # dangling pointer is gone; BOTH surfaces now declare no walkforward
+    # block, and reintroducing one is a reviewed edit of this assertion.
+    assert active_wf is None, (
+        f"active config grew a walkforward block again: {active_wf!r} — if "
+        f"intentional, pin it here with a path that exists")
     assert golden_wf is None
     assert active_norm == golden_norm
 
