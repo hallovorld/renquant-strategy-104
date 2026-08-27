@@ -6,7 +6,7 @@ WHAT: the active config, its six prod-mirror lanes, and shadow_vol_window all
 carried `walkforward.manifest_path` pointing at
 `…/sim/walkforward_manifest_dropsenti_v3.json` — a file with ZERO hits
 anywhere in the live umbrella [VERIFIED 2026-08-24, `find`]. The semantic-
-match test even pinned the dangling path as a contract. All nine carriers
+match test even pinned the dangling path as a contract. All eight changed carriers (the golden config was already absent and is covered by the test assertion only)
 now drop the block; the test asserts BOTH surfaces declare no walkforward
 block, with reintroduction requiring a reviewed edit of that assertion.
 
@@ -25,3 +25,22 @@ definition, and its behavior is byte-identical with the block absent
 
 §4b: full suite **103 passed, 1 skipped** (pre-existing skip) on
 CI-matching py3.10. Closes #101.
+
+
+## Authority + identity note (review r2, 2026-08-27)
+
+- This change is **behaviorally equivalent but NOT fingerprint-inert**: it
+  changes the bytes of `configs/strategy_config.json` and seven shadow
+  carriers, so run-bundle/provenance fingerprints of strategy config change
+  intentionally. It is treated as a production-config write, not a no-op.
+- Operator authorization received 2026-08-26, verbatim 「授权 row 2c」 (item 3
+  of the five-item authorization batch, Claude operator session); the
+  corresponding LONG-ledger **row 2c** lands in renquant-orchestrator before
+  this PR merges (sequenced after orch#1049/row 2b to avoid same-table
+  conflicts).
+- Deploy after merge follows the normal ordered path: umbrella pin advance +
+  runtime sync as separate reviewed steps, so runtime identity and provenance
+  stay coherent.
+- Carrier-count correction: the diff changes **eight** config carriers; the
+  golden config never carried the key and is covered by the test assertion
+  only.
