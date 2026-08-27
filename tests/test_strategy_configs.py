@@ -123,27 +123,31 @@ def test_active_and_golden_semantic_config_match() -> None:
     assert active_norm == golden_norm
 
 
-def test_cash_drag_slot_counts_stay_at_production_8_3() -> None:
-    """Pin the production slot counts so the 2026-06-29 cash-drag analysis
-    (PR #35) stays PROPOSAL-ONLY and cannot silently raise live policy.
+def test_slot_counts_pinned_at_production_10_3() -> None:
+    """Pin the production slot counts so slot policy cannot SILENTLY drift.
 
-    A real 2026-06-29 daily-full deployed only $827 of $8,730 buying power
-    (live book ~46% deployed) because two slot caps -- top-level
-    max_concurrent_positions and rotation.panel_buy_top_n -- bounded how many
-    small positions the book can hold. A readonly 8/3 vs 10/4 replay run today
-    on the live book showed the slot-raise is a WEAK fix: 10/4 deploys only
-    ~$427 more (CVX + ZM) while the genuinely better high-price names
-    (AVGO/BLK/GS) were selected but skipped by whole-share rounding because
-    their Kelly targets (~$400, ~4%) are smaller than one share. The real lever
-    is FRACTIONAL SHARES, not slot count, so active/golden stay at the
-    production 8/3 and this PR merges as the analysis record only. See
-    doc/design/2026-06-29-cash-drag-raise-slots.md. Active and golden must
-    agree for the CI semantic-match contract."""
+    History: the 2026-06-29 cash-drag analysis (PR #35) measured 10/4 as a
+    WEAK fix (~$427 more deployed) because pre-08-04 Kelly targets (~$400,
+    ~4%) rounded high-price names to zero shares -- so 8/3 was pinned and
+    PR #35 merged as an analysis record only
+    (doc/design/2026-06-29-cash-drag-raise-slots.md).
+
+    2026-08-24 update (GOAL-1 AC4): the 08-04 z-blend switch moved
+    max_position_pct 0.12 -> 0.30 and the 08-06 operator directive set the
+    per-name cap to 30%, which made the SLOT cap the binding constraint --
+    20-27 admissible names vs 0-2 free slots on measured sessions; replaying
+    350 held sessions through the production sizing seam, cap 10 lifts
+    capital deployment 17.3% -> 32.6% (orch#1025 grid, orch#1046 closeout,
+    operator-approved). max_concurrent_positions moves 8 -> 10 as a RECORDED
+    policy change; panel_buy_top_n stays 3 (not part of the approval). The
+    pin's job is unchanged: any FURTHER drift must arrive as a reviewed edit
+    of this test. Active and golden must agree for the CI semantic-match
+    contract."""
     active = _load("strategy_config.json")
     golden = _load("strategy_config.golden.json")
 
-    assert active["max_concurrent_positions"] == 8
-    assert golden["max_concurrent_positions"] == 8
+    assert active["max_concurrent_positions"] == 10
+    assert golden["max_concurrent_positions"] == 10
     assert active["rotation"]["panel_buy_top_n"] == 3
     assert golden["rotation"]["panel_buy_top_n"] == 3
     assert (

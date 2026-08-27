@@ -182,7 +182,8 @@
     "percentile_threshold": 85
   },
   "training_years": 2.5,
-  "max_concurrent_positions": 8,
+  "max_concurrent_positions": 10,
+  "_max_concurrent_positions_reason": "2026-08-26 GOAL-1 AC4 cap-only Stage 1 (orch#1046 r2 staged rationale, MERGED; operator confirmation of the narrowed package 2026-08-26 verbatim per orch LONG-ledger row 2b, MERGED orch#1049): the cap is the binding deployment constraint — 20-27 admissible names vs 0-2 free slots on measured sessions; replaying 350 held sessions, cap 10 lifts capital deployment 17.3% -> 32.6% (saturates ~15). Cap-10 integer tilt IMPROVES on today (1.28x -> 1.20x, orch#1025 grid). Whole-share sizing unchanged; execution.fractional_shares stays OFF because its capability gate FAILS today (no is_fractionable on the live broker adapter, software_stops unarmed) and enabling ahead of dependencies fail-closes ALL buys by design.",
   "parallel_workers": null,
   "parallel_ticker_timeout_seconds": 2400,
   "_parallel_ticker_timeout_note_20260701": "Raised 600->2400 (10min->40min). On 2026-06-30 the 600s cap timed out the per-ticker RL+RF+XGB tournament retrain (scripts/train_104.py --skip-panel, 142 tickers) at only ~67/142 done -> ParallelTimeoutError -> the whole retrain failed silently -> per-ticker models never refreshed -> universe staleness gate dropped all non-held tickers -> 0 buy candidates (the recurring no-buys root cause). The full 142-ticker tournament measured ~493-1280s; 2400s (40min) covers it with comfortable headroom. Kept in lockstep with strategy_config.json per the active==golden semantic-match contract.",
