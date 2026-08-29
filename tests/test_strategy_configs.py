@@ -1571,3 +1571,57 @@ def test_every_blend_component_kind_is_in_the_loader_vocabulary() -> None:
             )
             checked += 1
     assert checked >= 10, f"anti-vacuity: only {checked} components checked"
+
+
+# --- correlation artifact path: the guard reads the MAINTAINED file (orch#1065) ---
+
+CORRELATION_ARTIFACT_MOVERS = (
+    "strategy_config.json",
+    "strategy_config.golden.json",
+    "strategy_config.shadow_blend.json",
+    "strategy_config.shadow_blend_momentum.json",
+    "strategy_config.shadow_momentum.json",
+    "strategy_config.shadow_blend_momentum_fast.json",
+    "strategy_config.shadow_blend_rb_mom.json",
+    "strategy_config.shadow_blend_rb_fast.json",
+)
+
+
+def test_correlation_artifact_points_at_the_maintained_file() -> None:
+    """orch#1065 (measured 2026-08-25): the served guard read
+    ``artifacts/prod/watchlist-correlation.json`` (last written 2026-05-23,
+    as_of_date 2026-05-22, no regeneration job) while the weekly training
+    writer (pipeline ``CorrelationJob``) maintains
+    ``artifacts/watchlist-correlation.json`` one directory up. Cost of the
+    95-day divergence at the 0.70 threshold: 80 dead blocks + 108 invisible
+    conflicts. Every consumer resolves the key as
+    ``<strategy_dir>/artifacts/<value>`` (pipeline preflight
+    ``_correlation_artifact_path``, ``ComputeFullSigmaTask``, umbrella
+    ``load_context_artifacts``), so the bare filename is the maintained
+    file. Authority: orch LONG-ledger row 2d (one-time exception to row 2;
+    PENDING first-hand operator confirmation at preparation time). Movers =
+    active + golden + the six prod-mirror lanes, exactly as rows 2a/2b;
+    frozen arms keep their values (shadow/shadow_a/shadow_b on the sim
+    artifact, shadow_vol_window on the prod copy). Any further move is a
+    reviewed edit of this test."""
+    for name in CORRELATION_ARTIFACT_MOVERS:
+        cfg = _load(name)
+        assert cfg["regime"]["correlation_artifact"] == "watchlist-correlation.json", name
+        assert "/" not in cfg["regime"]["correlation_artifact"], (
+            f"{name}: the maintained file lives directly under artifacts/")
+
+    # Provenance note lives on active + golden (named explicitly in row 2d, as
+    # row 2b named `_max_concurrent_positions_reason`).
+    for name in ("strategy_config.json", "strategy_config.golden.json"):
+        reason = _load(name)["regime"]["_correlation_artifact_reason"]
+        assert "orch#1065" in reason, name
+        assert "row 2d" in reason, name
+
+    # Frozen arms untouched.
+    for name in ("strategy_config.shadow.json", "strategy_config.shadow_a.json",
+                 "strategy_config.shadow_b.json"):
+        assert _load(name)["regime"]["correlation_artifact"] == "sim/watchlist-correlation.json", name
+    assert (
+        _load("strategy_config.shadow_vol_window.json")["regime"]["correlation_artifact"]
+        == "prod/watchlist-correlation.json"
+    )
