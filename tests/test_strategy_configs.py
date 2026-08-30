@@ -1642,8 +1642,9 @@ def test_rotation_engine_is_disabled_until_validated() -> None:
     per-ticker 5-day expected return x12 to the 60-day horizon (22% of
     session pairs jump >= the 0.06 threshold; 17 sign flips in 12 names),
     ``transaction_cost_pct`` is 0, and in 07-17..08-28 it produced 8 of 33
-    round-trips and 55.6% of gross traded $ for realized +$64 while the
-    re-entries it caused took the two stop-loss losses (-$207). The engine
+    round-trips for realized +$64 while the six names it kept re-entering
+    carried 55.6% of gross traded $ and two of those re-entries took the
+    stop-loss losses (-$207). The engine
     is OFF in active + golden + the six prod-mirror lanes (the row-2a/2b/2d
     mover set); every OTHER rotation key keeps its value so a validated
     design re-enables with a single-key flip under its own authority row.
