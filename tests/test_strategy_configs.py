@@ -1589,6 +1589,20 @@ SETTLED_CASH_MOVERS = (
 )
 
 
+# --- rotation engine: OFF until a rotation design passes a WF gate (orch row 2e) ---
+
+ROTATION_OFF_MOVERS = (
+    "strategy_config.json",
+    "strategy_config.golden.json",
+    "strategy_config.shadow_blend.json",
+    "strategy_config.shadow_blend_momentum.json",
+    "strategy_config.shadow_momentum.json",
+    "strategy_config.shadow_blend_momentum_fast.json",
+    "strategy_config.shadow_blend_rb_mom.json",
+    "strategy_config.shadow_blend_rb_fast.json",
+)
+
+
 def test_buys_are_sized_on_settled_cash_never_margin() -> None:
     """2026-08-30 ledger forensics (orch LONG-ledger row 2f): the live
     adapter ignored ``execution.buying_power_mode`` and sized buys on
@@ -1621,8 +1635,41 @@ def test_buys_are_sized_on_settled_cash_never_margin() -> None:
         assert "RenQuant#624" in reason, name
         assert "Margin use = a new authority row" in reason, name
 
+def test_rotation_engine_is_disabled_until_validated() -> None:
+    """2026-08-30 forensic audit (orch LONG-ledger row 2e): the rotation
+    engine was never exercised by any WF cut of the served recipe (0
+    rotation trades in all 3 validated cuts), its ``net_adv`` is a
+    per-ticker 5-day expected return x12 to the 60-day horizon (22% of
+    session pairs jump >= the 0.06 threshold; 17 sign flips in 12 names),
+    ``transaction_cost_pct`` is 0, and in 07-17..08-28 it produced 8 of 33
+    round-trips and 55.6% of gross traded $ for realized +$64 while the
+    re-entries it caused took the two stop-loss losses (-$207). The engine
+    is OFF in active + golden + the six prod-mirror lanes (the row-2a/2b/2d
+    mover set); every OTHER rotation key keeps its value so a validated
+    design re-enables with a single-key flip under its own authority row.
+    Frozen arms (shadow/shadow_a/shadow_b/shadow_vol_window) keep the value
+    their prereg froze. Re-enabling is a reviewed edit of this test."""
+    for name in ROTATION_OFF_MOVERS:
+        rot = _load(name)["rotation"]
+        assert rot["enabled"] is False, name
+        # The rest of the block is untouched: a later re-enable flips ONE key.
+        assert rot["min_expected_advantage_pct"] == 0.06, name
+        assert rot["target_horizon_days"] == 60, name
+        assert rot["min_rotation_hold_days"] == 7, name
+        assert rot["transaction_cost_pct"] == 0, name
+        assert rot["panel_buy_top_n"] == 3, name
+
+    # Provenance note lives on active + golden (named explicitly in row 2e,
+    # as row 2b named `_max_concurrent_positions_reason`).
+    for name in ("strategy_config.json", "strategy_config.golden.json"):
+        reason = _load(name)["rotation"]["_enabled_reason"]
+        assert "row 2e" in reason, name
+        assert "0 rotation trades" in reason, name
+        assert "Re-enable = a new authority row" in reason, name
+
     # Frozen arms untouched.
     for name in ("strategy_config.shadow.json", "strategy_config.shadow_a.json",
                  "strategy_config.shadow_b.json",
                  "strategy_config.shadow_vol_window.json"):
         assert _load(name)["execution"]["buying_power_mode"] == "non_marginable_buying_power", name
+        assert _load(name)["rotation"]["enabled"] is True, name

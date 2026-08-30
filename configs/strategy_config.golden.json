@@ -747,7 +747,8 @@
     ]
   },
   "rotation": {
-    "enabled": true,
+    "enabled": false,
+    "_enabled_reason": "2026-08-30 forensic audit (orch row 2e): the rotation engine was never exercised by any WF cut (0 rotation trades in all 3 validated cuts of the served recipe), its net_adv is a per-ticker 5-day isotonic expected return ×12 to a 60-day horizon (22% of session pairs jump ≥ the 0.06 threshold; 17 sign flips in 12 names), transaction_cost_pct=0, and it produced 8 of 33 round-trips and 55.6% of gross traded $ in 07-17..08-28 for realized +$64 while re-entries took the two stop-loss losses (−$207). Disabled until a validated rotation design exists. Re-enable = a new authority row.",
     "min_expected_advantage_pct": 0.06,
     "target_horizon_days": 60,
     "_target_horizon_days_reason": "2026-05-24 Codex horizon-contract fix: panel-LTR production label/calibrator/QP μ are 60d (`panel_ltr.lookahead_days=60`, `qp_mu_horizon_days=60`). Rotation decisions must use the same expected-return horizon; 20d made logs/thresholds short-horizon while the panel calibrator supplied 60d μ, and BULL_CALM forensics showed the signal aligns better at longer horizons.",
