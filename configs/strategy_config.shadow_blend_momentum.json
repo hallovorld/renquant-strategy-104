@@ -746,7 +746,7 @@
     ]
   },
   "rotation": {
-    "enabled": true,
+    "enabled": false,
     "min_expected_advantage_pct": 0.06,
     "target_horizon_days": 60,
     "_target_horizon_days_reason": "2026-05-24 Codex horizon-contract fix: panel-LTR production label/calibrator/QP μ are 60d (`panel_ltr.lookahead_days=60`, `qp_mu_horizon_days=60`). Rotation decisions must use the same expected-return horizon; 20d made logs/thresholds short-horizon while the panel calibrator supplied 60d μ, and BULL_CALM forensics showed the signal aligns better at longer horizons.",
