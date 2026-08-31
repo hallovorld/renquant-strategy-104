@@ -1,9 +1,8 @@
 # rotation.enabled=false — the rotation engine is unvalidated churn (orch row 2e)
 
-STATUS: production-config write, ONE key, merge gated on orchestrator
-LONG-ledger row 2e (evidence-backed; first-hand operator confirmation slot
-PENDING — the agent proceeds under the operator's 2026-08-30 max-benefit
-directive with a single-key revert available at every step).
+STATUS: production-config write, ONE key, authorized by orchestrator
+LONG-ledger row 2e (AUTHORIZATION COMPLETE 2026-08-30 12:09 PDT; row 2e
+merged to orchestrator main as orch#1095).
 
 WHAT: `rotation.enabled` **true → false** in the active config, its golden
 twin, and the six prod-mirror lanes (`shadow_blend`, `shadow_blend_momentum`,
@@ -44,12 +43,13 @@ WHY (§4b, all read-only, 2026-08-29/30):
   fix removes one bypass, not the unvalidated advantage signal.
 
 Authority: `strategy_config.json` is read-only under LONG-ledger row 2.
-Row 2e (renquant-orchestrator, this batch) records the one-time authority:
-basis = the operator's 2026-08-30 directive 「你问的6个问题基本都不是真正的问题!
-你自己按照受益最大方向推进」 + the three evidence pointers above; the
-change-specific first-hand confirmation slot is PENDING (operator may confirm
-or veto). Expiry/restore: until a rotation design passes a WF gate.
-Rollback: single-key revert PR + pin re-advance.
+Row 2e (renquant-orchestrator#1095, MERGED) records the one-time authority:
+first-hand, change-specific operator confirmation 2026-08-30 12:09 PDT —
+agent prompt 「确认 row 2e:rotation.enabled=false;确认 row
+2f:execution.buying_power_mode=settled_cash」, operator reply 「确认」—
+supported by the three evidence findings above. Expiry/restore: until a
+rotation design passes a WF gate. Rollback: single-key revert PR + pin
+re-advance.
 
 Deploy: normal ordered path — umbrella pin advance + runtime sync as
 separate reviewed steps. Day-1 check: `daily_104` log shows no
