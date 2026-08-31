@@ -435,7 +435,9 @@ def test_execution_contract_is_explicit() -> None:
 
     assert cfg["execution"]["enabled"] is True
     assert cfg["execution"]["t2_settlement_days"] == 1
-    assert cfg["execution"]["buying_power_mode"] == "non_marginable_buying_power"
+    # 2026-08-30 (orch row 2f): settled cash, never unsettled proceeds or
+    # margin — see test_buys_are_sized_on_settled_cash_never_margin.
+    assert cfg["execution"]["buying_power_mode"] == "settled_cash"
 
 
 def test_fractional_shares_contract_is_explicit_and_default_off() -> None:
@@ -1571,3 +1573,56 @@ def test_every_blend_component_kind_is_in_the_loader_vocabulary() -> None:
             )
             checked += 1
     assert checked >= 10, f"anti-vacuity: only {checked} components checked"
+
+
+# --- buy sizing: SETTLED CASH, never unsettled proceeds or margin (orch row 2f) ---
+
+SETTLED_CASH_MOVERS = (
+    "strategy_config.json",
+    "strategy_config.golden.json",
+    "strategy_config.shadow_blend.json",
+    "strategy_config.shadow_blend_momentum.json",
+    "strategy_config.shadow_momentum.json",
+    "strategy_config.shadow_blend_momentum_fast.json",
+    "strategy_config.shadow_blend_rb_mom.json",
+    "strategy_config.shadow_blend_rb_fast.json",
+)
+
+
+def test_buys_are_sized_on_settled_cash_never_margin() -> None:
+    """2026-08-30 ledger forensics (orch LONG-ledger row 2f): the live
+    adapter ignored ``execution.buying_power_mode`` and sized buys on
+    ``non_marginable_buying_power`` unconditionally — 08-27 HPE $1,034 was
+    bought with settled cash $33, 08-28 WELL $1,904 + NET with settled cash
+    -$1,140, leaving the account ~1.11x on margin at the 08-28 close (cash
+    -$1,139.70). RenQuant#624 makes the adapter honour this key (vocabulary
+    ``settled_cash | non_marginable_buying_power | buying_power``; default
+    ``settled_cash`` when absent) and the sim reads the same key, so the
+    mover set (active + golden + the six prod-mirror lanes — the
+    row-2a/2b/2d/2e set) declares ``settled_cash`` and sim/live stay in ONE
+    mode. Every OTHER ``execution.*`` key keeps its value. Frozen arms
+    (shadow/shadow_a/shadow_b/shadow_vol_window) keep the value their prereg
+    froze. Moving back to a margin-backed mode is a reviewed edit of this
+    test under a NEW authority row."""
+    for name in SETTLED_CASH_MOVERS:
+        ex = _load(name)["execution"]
+        assert ex["buying_power_mode"] == "settled_cash", name
+        # The rest of the block is untouched: a later change flips ONE key.
+        assert ex["enabled"] is True, name
+        assert ex["t2_settlement_days"] == 1, name
+        assert ex["fractional_shares"]["enabled"] is False, name
+        assert ex["software_stops"]["enabled"] is False, name
+
+    # Provenance note lives on active + golden (named explicitly in row 2f,
+    # as row 2b named `_max_concurrent_positions_reason`).
+    for name in ("strategy_config.json", "strategy_config.golden.json"):
+        reason = _load(name)["execution"]["_buying_power_mode_reason"]
+        assert "row 2f" in reason, name
+        assert "RenQuant#624" in reason, name
+        assert "Margin use = a new authority row" in reason, name
+
+    # Frozen arms untouched.
+    for name in ("strategy_config.shadow.json", "strategy_config.shadow_a.json",
+                 "strategy_config.shadow_b.json",
+                 "strategy_config.shadow_vol_window.json"):
+        assert _load(name)["execution"]["buying_power_mode"] == "non_marginable_buying_power", name
