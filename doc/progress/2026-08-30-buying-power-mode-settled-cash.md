@@ -1,10 +1,8 @@
 # execution.buying_power_mode=settled_cash — never size buys on unsettled proceeds or margin (orch row 2f)
 
-STATUS: production-config write, ONE key, merge gated on orchestrator
-LONG-ledger row 2f (evidence-backed; the first-hand, change-specific operator
-confirmation slot is PENDING — codex fails closed without it, precedent
-orch#1095 review). Nothing merges until the slot is filled and the row lands
-on orchestrator `main` first.
+STATUS: production-config write, ONE key, authorized by orchestrator
+LONG-ledger row 2f (AUTHORIZATION COMPLETE 2026-08-30 12:09 PDT; row 2f
+merged to orchestrator main as orch#1097).
 
 WHAT: `execution.buying_power_mode` **`non_marginable_buying_power` →
 `settled_cash`** in the active config, its golden twin, and the six
@@ -51,10 +49,13 @@ WHY (§4b, all read-only):
   names, so declaring `settled_cash` here keeps both paths in ONE mode.
 
 Authority: `strategy_config.json` is read-only under LONG-ledger row 2.
-Row 2f (renquant-orchestrator, this batch) records the one-time authority;
-its change-specific first-hand confirmation slot is PENDING. Scope = this
-single key + its reason. Expiry/restore: **until the operator authorizes
-margin use by a new row**. Rollback: single-key revert PR + pin re-advance.
+Row 2f (renquant-orchestrator#1097, MERGED) records the one-time authority:
+first-hand, change-specific operator confirmation 2026-08-30 12:09 PDT —
+agent prompt 「确认 row 2e:rotation.enabled=false;确认 row
+2f:execution.buying_power_mode=settled_cash」, operator reply 「确认」.
+Scope = this single key + its reason. Expiry/restore: **until the operator
+authorizes margin use by a new row**. Rollback: single-key revert PR + pin
+re-advance.
 
 Ordering: RenQuant#624 must merge + live fast-forward FIRST or TOGETHER with
 the pin advance carrying this change — with the old adapter the key is
