@@ -1,4 +1,4 @@
-# Served-scorer content pin follows the A4-T1 promotion (6461b827 → f1b1c132)   (PR #TBD)
+# Served-scorer content pin follows the A4-T1 promotion (6461b827 → f1b1c132)   (PR #107)
 
 STATUS:    prepared — production-config write under LONG row 2; does NOT merge
            until the orchestrator authority row (2g) carries the operator's
