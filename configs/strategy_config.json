@@ -1055,7 +1055,8 @@
       "components": [
         {
           "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
-          "expected_content_sha256": "sha256:6461b827ab2339a8",
+          "expected_content_sha256": "sha256:f1b1c1322e3b66f7",
+          "_expected_content_sha256_reason": "2026-09-04: rotated sha256:6461b827ab2339a8 (the 2026-08-02 model) -> sha256:f1b1c1322e3b66f7 = the RFC#210 A4-T1 promoted artifact (candidate 20260831T141820Z, trained 2026-08-31, promoted 2026-09-03 09:09 PDT via the orchestrator wrapper, ledger receipt 2cd9d27b0b96835119827de0760213a0539e71ac7574c213a74f68a5cc772d6e). The 2026-09-04 06:06 dawn funnel preflight refused the blend load on the stale pin (LoadScorerTask: blend component[0] content_sha256 MISMATCH) - the promote chain moves the artifact, this pin must move with it. Authority: orchestrator LONG-ledger row 2g (one-time).",
           "expected_config_fingerprint": "sha256:f8fb2259b2bf1537",
           "_role": "component 0 = PRODUCTION panel scorer (rank:pairwise xgb); pins copied from the live artifact 2026-07-27 (content abbrev-16 per the shadow_models convention, fp verbatim)"
         },

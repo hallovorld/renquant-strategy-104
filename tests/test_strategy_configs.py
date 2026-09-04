@@ -1015,7 +1015,7 @@ def test_shadow_blend_profile_semantic_pins() -> None:
     ] == [
         {
             "artifact_path": "artifacts/prod/panel-ltr.alpha158_fund.json",
-            "expected_content_sha256": "sha256:6461b827ab2339a8",  # rotated 2026-08-04: RFC#210 promotion swapped the prod component (was 04d7a381, June-trained)
+            "expected_content_sha256": "sha256:f1b1c1322e3b66f7",  # rotated 2026-09-04: the RFC#210 A4-T1 promotion (candidate 20260831T141820Z, 2026-09-03) swapped the prod component (was 6461b827, 2026-08-02-trained; before that 04d7a381, June-trained)
             "expected_config_fingerprint": "sha256:f8fb2259b2bf1537",
         },
         {
