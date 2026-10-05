@@ -1,8 +1,12 @@
 # Served-scorer content pin follows the A4-T1 promotion (6461b827 → f1b1c132)   (PR #107)
 
-STATUS:    prepared — production-config write under LONG row 2; does NOT merge
-           until the orchestrator authority row (2g) carries the operator's
-           first-hand, change-specific confirmation of THIS pin move.
+STATUS:    authorized — production-config write under LONG row 2, covered by
+           orchestrator LONG row 2g, which is on orchestrator `main`
+           (renquant-orchestrator#1115, merged 2026-10-05 UTC at d6719ab4)
+           and quotes the operator's 2026-09-12 confirmation of THIS pin
+           move verbatim. Landed on the live tree under containment
+           2026-09-12; this PR is the reviewed surface and awaits Codex
+           re-review against the merged row.
 WHAT:      In the SEVEN carriers that pin the blend's component[0]
            (`configs/strategy_config.json`, its golden twin, and the five
            `shadow_blend*` prod-mirror lanes), `ranking.panel_scoring.
@@ -49,9 +53,8 @@ EVIDENCE:  artifact:      `RenQuant/logs/rq104/dawn_funnel_preflight_2026-09-04.
            proof (read-only): the PINNED pipeline's `load_blend_scorer` (faf1416a, umbrella venv + pinned PYTHONPATH, `_strategy_dir` = the live strategy dir) on the pinned config 7998212 → REFUSED `blend component[0] content_sha256 MISMATCH … pinned='sha256:6461b827ab2339a8' observed=sha256:f1b1c1322e3b66f7…` (the dawn preflight's exact refusal); on THIS PR's `configs/strategy_config.json` → LOADED 2 components (`panel-ltr.alpha158_fund.json` + `momentum_artifact_ledger.jsonl`, both identity-verified) [VERIFIED — 2026-09-04 between 06:50 and 06:37 PDT; no file written]
            best-known?:   n/a — identity bookkeeping; no model claim (the promoted artifact is the zero-trade A4-T1 candidate the standing policy refuses; this PR does not change that decision, it makes the authorized decision executable)
            scope:         "this PR moves one digest pin (and adds its named reason) in seven config carriers and one test fixture; it does not touch any artifact, any other key, or the audit manifest"
-NEXT:      orchestrator LONG row 2g (authority PR) must carry the operator's
-           first-hand confirmation of exactly this move before either PR
-           merges → merge row → merge this PR → umbrella pin advance
+NEXT:      row 2g is merged (renquant-orchestrator#1115) → Codex re-review
+           of this PR against the merged row → merge this PR → umbrella pin advance
            (`subrepos.lock.json` renquant-strategy-104 → this merge) +
            snapshot re-render → live `git pull --ff-only` +
            `subrepo_assemble --sync` → the next dawn preflight / 13:55 run
